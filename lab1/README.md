@@ -10,3 +10,5 @@
     python lab1_dobot_dh.py
     python lab1_dobot_dh_manual.py
     ```
+
+![result](./dobot_motion.gif)
