@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 np.set_printoptions(precision=4, suppress=True)
 
@@ -7,9 +8,9 @@ class Dobot:
         # DH parameters [theta, d, a, alpha]
         self.dh_params = [
             [0, 0, 0, -np.pi/2],
-            [np.pi/2, 0, -0.15, 0],
-            [np.pi/2, 0, -0.15, 0],
-            [0, 0, -0.09, np.pi/2],
+            [-np.pi/2, 0, 0.15, 0],
+            [np.pi/2, 0, 0.15, 0],
+            [0, 0, 0.09, np.pi/2],
             [0, 0, 0, 0]
         ]
         self.n_joints = len(self.dh_params)
@@ -60,11 +61,17 @@ class Dobot:
 if __name__ == "__main__":
     robot = Dobot()
     
-    test_angles = [0, np.pi/4, np.pi/4, np.pi/4, np.pi/4]
+    # test_angles = [0, np.pi/4, np.pi/4, np.pi/4, np.pi/4]
     # test_angles = np.random.rand(robot.n_joints) * 2 * np.pi
     
+    q = [24.0200, 40.2303, 56.4400, 0.0000, -8.1800]
+    q[3] = -(q[2] + q[1])
+    test_angles = [x/180*np.pi for x in q]
+
     T = robot.forward_kinematics(test_angles)
-    
+    rot = Rotation.from_matrix(np.array(T[:3, :3]))
+
     print(f"Test joint angles (radians):\n{test_angles}\n")
     print(f"Final transformation matrix:\n{T}\n")
     print(f"End effector position (x, y, z):\n{T[0:3, 3]}")
+    print(f"End effector orientation (roll, pitch, yaw):\n{rot.as_euler('xyz', degrees=True)}")
