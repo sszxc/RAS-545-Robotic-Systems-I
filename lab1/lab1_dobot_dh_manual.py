@@ -64,14 +64,16 @@ if __name__ == "__main__":
     # test_angles = [0, np.pi/4, np.pi/4, np.pi/4, np.pi/4]
     # test_angles = np.random.rand(robot.n_joints) * 2 * np.pi
     
-    q = [24.0200, 40.2303, 56.4400, 0.0000, -8.1800]
-    q[3] = -(q[2] + q[1])
-    test_angles = [x/180*np.pi for x in q]
+    input_q = [24.0200, 40.2303, 56.4400, 0.0000, -8.1800]
+    q = input_q.copy()
+    q[2] = -input_q[1] + input_q[2]
+    q[3] = -input_q[2]
+    target_q = [x/180*np.pi for x in q]
 
-    T = robot.forward_kinematics(test_angles)
+    T = robot.forward_kinematics(target_q)
     rot = Rotation.from_matrix(np.array(T[:3, :3]))
 
-    print(f"Test joint angles (radians):\n{test_angles}\n")
+    print(f"Test joint angles (radians):\n{target_q}\n")
     print(f"Final transformation matrix:\n{T}\n")
     print(f"End effector position (x, y, z):\n{T[0:3, 3]}")
     print(f"End effector orientation (roll, pitch, yaw):\n{rot.as_euler('xyz', degrees=True)}")

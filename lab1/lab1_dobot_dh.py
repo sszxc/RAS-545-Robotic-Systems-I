@@ -29,8 +29,10 @@ if __name__ == "__main__":
     # test different joint angles
     # target_q = [0, np.pi/4, np.pi/4, np.pi/4, np.pi/4]  # 各关节角度
     # target_q = [0, 0, 0, 0, 0]
-    q = [24.0200, 40.2303, 56.4400, 0.0000, -8.1800]
-    q[3] = -(q[2] + q[1])
+    input_q = [24.0200, 40.2303, 56.4400, 0.0000, -8.1800]
+    q = input_q.copy()
+    q[2] = -input_q[1] + input_q[2]
+    q[3] = -input_q[2]
     target_q = [x/180*np.pi for x in q]
 
     print("\nRobot position at joint angles", target_q, ":")
