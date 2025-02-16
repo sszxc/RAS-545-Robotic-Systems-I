@@ -8,13 +8,6 @@
     ```
     pip install roboticstoolbox-python
     ```
-
-        L1 = RevoluteDH(offset=0,        d=219.34,  a=0,      alpha=np.pi/2)
-        L2 = RevoluteDH(offset=-np.pi/2, d=0,       a=-250,   alpha=0)
-        L3 = RevoluteDH(offset=0,        d=0,       a=-250,   alpha=0)
-        L4 = RevoluteDH(offset=np.pi/2,  d=-108,    a=0,      alpha=-np.pi/2)
-        L5 = RevoluteDH(offset=0,        d=109.10,  a=0,      alpha=np.pi/2)
-        L6 = RevoluteDH(offset=0,        d=-75.86,  a=0,      alpha=np.pi)
         
 - D-H parameters:
     | Joint | θ | d | a | α |
