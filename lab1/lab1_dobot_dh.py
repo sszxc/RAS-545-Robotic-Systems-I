@@ -42,7 +42,7 @@ if __name__ == "__main__":
     print(f"End effector orientation (roll, pitch, yaw):{rot.as_euler('xyz', degrees=True)}\n")
 
     # define start and end joint position
-    q0 = [0, 0, 0, 0, 0]
+    q0 = [0] * my_robot.n
     print(f"Start generating trajectory from\n{q0}\nto\n{target_q}...\n")
 
     # generate trajectory
