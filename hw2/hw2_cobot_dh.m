@@ -37,6 +37,7 @@ function T_total = forward_kinematics(dh_params, joint_angles)
         
         % compute current transformation matrix
         Ti = dh_transform(theta, d, a, alpha);
+        fprintf('joint %d transformation matrix:\n', i); disp(Ti);
         
         % accumulate transformation matrix
         T_total = T_total * Ti;
