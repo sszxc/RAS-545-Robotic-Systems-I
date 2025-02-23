@@ -8,12 +8,20 @@ np.set_printoptions(precision=4, suppress=True)
 
 class myCobot_Pro_600(DHRobot):
     def __init__(self):
-        L1 = RevoluteDH(offset=0,        d=219.34,  a=0,      alpha=np.pi/2)
-        L2 = RevoluteDH(offset=-np.pi/2, d=0,       a=-250,   alpha=0)
+        # GUI definition
+        L1 = RevoluteDH(offset=np.pi,    d=219.34,  a=0,      alpha=np.pi/2)
+        L2 = RevoluteDH(offset=0,        d=0,       a=-250,   alpha=0)
         L3 = RevoluteDH(offset=0,        d=0,       a=-250,   alpha=0)
-        L4 = RevoluteDH(offset=np.pi/2,  d=-108,    a=0,      alpha=-np.pi/2)
+        L4 = RevoluteDH(offset=np.pi,    d=108,     a=0,      alpha=-np.pi/2)
         L5 = RevoluteDH(offset=0,        d=109.10,  a=0,      alpha=np.pi/2)
-        L6 = RevoluteDH(offset=0,        d=-75.86,  a=0,      alpha=np.pi)
+        L6 = RevoluteDH(offset=0,        d=75.86,   a=0,      alpha=np.pi)
+        # TA definition
+        # L1 = RevoluteDH(offset=0,        d=219.34,  a=0,      alpha=np.pi/2)
+        # L2 = RevoluteDH(offset=-np.pi/2, d=0,       a=-250,   alpha=0)
+        # L3 = RevoluteDH(offset=0,        d=0,       a=-250,   alpha=0)
+        # L4 = RevoluteDH(offset=np.pi/2,  d=-108,    a=0,      alpha=-np.pi/2)
+        # L5 = RevoluteDH(offset=0,        d=109.10,  a=0,      alpha=np.pi/2)
+        # L6 = RevoluteDH(offset=0,        d=-75.86,  a=0,      alpha=np.pi)
         
         super().__init__(
             [L1, L2, L3, L4, L5, L6],
@@ -27,7 +35,11 @@ if __name__ == "__main__":
     print(my_robot)
 
     # test different joint angles
-    target_q = [0, np.pi/6, np.pi/6, np.pi/6, -np.pi/4, 0]
+    target_q = [-14.98, -115.6, -44.69, -94.74, -19.42, 0.0]
+    # target_q = [0.0, -110.4, -42.179, -90.7, 0.43, 0.0]
+    target_q = [q/180*np.pi for q in target_q]
+
+    # target_q = [0, np.pi/6, np.pi/6, np.pi/6, -np.pi/4, 0]
     # target_q = np.random.rand(my_robot.n) * 2 * np.pi
 
     print("\nRobot position at joint angles", target_q, ":")
@@ -35,6 +47,8 @@ if __name__ == "__main__":
 
     rot = Rotation.from_matrix(np.array(my_robot.fkine(target_q))[:3, :3 ])
     print(f"End effector orientation (roll, pitch, yaw):{rot.as_euler('xyz', degrees=True)}\n")
+
+    # ================================
 
     # generate trajectory
     print(f"Start generating trajectory...")
