@@ -1,0 +1,83 @@
+<mujoco model="robot_arm">
+  <compiler angle="radian"/>
+  <option gravity="0 0 0"/>
+  <default>
+    <default class="/"/>
+    <default class="coordinate_axes/"/>
+    <default class="coordinate_axes_1/"/>
+    <default class="coordinate_axes_2/"/>
+  </default>
+  <asset>
+    <texture name="groundplane" type="2d" builtin="checker" rgb1="0.20000000000000001 0.29999999999999999 0.40000000000000002" rgb2="0.5 0.59999999999999998 0.69999999999999996" mark="edge" markrgb="0.80000000000000004 0.80000000000000004 0.80000000000000004" width="300" height="300"/>
+    <material name="groundplane" class="/" texture="groundplane" texrepeat="5 5" texuniform="true" reflectance="0.5"/>
+    <material name="blue" class="/" rgba="0 0 1 0.5"/>
+    <material name="black" class="/" rgba="0 0 0 0.5"/>
+    <material name="white" class="/" rgba="1 1 1 0.5"/>
+    <material name="metal" class="/" specular="1" shininess="1" reflectance="0.5" rgba="0.80000000000000004 0.80000000000000004 0.80000000000000004 1"/>
+    <material name="plastic" class="/" specular="0.29999999999999999" shininess="0.5" rgba="1 1 1 1"/>
+    <material name="rubber" class="/" specular="0.10000000000000001" shininess="0.10000000000000001" rgba="0.20000000000000001 0.20000000000000001 0.20000000000000001 1"/>
+    <texture name="blue_gradient" type="2d" builtin="gradient" rgb1="0 0 1" rgb2="1 1 1" width="100" height="100"/>
+    <material name="gradient_material" class="/" texture="blue_gradient" texuniform="true"/>
+    <texture name="metal_gradient" type="2d" builtin="gradient" rgb1="0.80000000000000004 0.80000000000000004 0.80000000000000004" rgb2="0.20000000000000001 0.20000000000000001 0.20000000000000001" width="100" height="100"/>
+    <material name="metal_gradient_material" class="/" texture="metal_gradient" texuniform="true" reflectance="0.5"/>
+    <texture name="chess" type="2d" builtin="checker" rgb1="0 0 0" rgb2="1 1 1" mark="edge" markrgb="0.80000000000000004 0.80000000000000004 0.80000000000000004" width="300" height="300"/>
+    <material name="chess_material" class="/" texture="chess" texrepeat="5 5"/>
+    <texture name="red_flat" type="2d" builtin="flat" rgb1="1 0 0" mark="edge" markrgb="0.80000000000000004 0.80000000000000004 0.80000000000000004" width="300" height="300"/>
+    <material name="red_flat_material" class="/" texture="red_flat"/>
+    <mesh name="base_mesh" class="/" file="magician_lite_base_simple.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link1_mesh" class="/" file="magician_lite_link1_simple.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link2_mesh" class="/" file="magician_lite_link2_simple.stl" scale="0.001 0.001 0.001"/>
+    <material name="coordinate_axes/red" class="coordinate_axes/" rgba="1 0 0 1"/>
+    <material name="coordinate_axes/green" class="coordinate_axes/" rgba="0 1 0 1"/>
+    <material name="coordinate_axes/blue" class="coordinate_axes/" rgba="0 0 1 1"/>
+    <material name="coordinate_axes_1/red" class="coordinate_axes_1/" rgba="1 0 0 1"/>
+    <material name="coordinate_axes_1/green" class="coordinate_axes_1/" rgba="0 1 0 1"/>
+    <material name="coordinate_axes_1/blue" class="coordinate_axes_1/" rgba="0 0 1 1"/>
+    <material name="coordinate_axes_2/red" class="coordinate_axes_2/" rgba="1 0 0 1"/>
+    <material name="coordinate_axes_2/green" class="coordinate_axes_2/" rgba="0 1 0 1"/>
+    <material name="coordinate_axes_2/blue" class="coordinate_axes_2/" rgba="0 0 1 1"/>
+  </asset>
+  <worldbody>
+    <geom name="ground" class="/" type="plane" size="5 5 1" material="groundplane"/>
+    <light name="//unnamed_light_0" class="/" pos="0 0 10" dir="0 0 -1"/>
+    <body name="base">
+      <geom name="//unnamed_geom_1" class="/" type="mesh" material="plastic" pos="0.02 0 0.107" mesh="base_mesh"/>
+      <site name="//unnamed_site_0" class="/" pos="0 0 0"/>
+      <body pos="0 0 0" name="coordinate_axes/">
+        <body name="coordinate_axes/axes">
+          <geom name="coordinate_axes//unnamed_geom_0" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes/red" fromto="0 0 0 0.10000000000000001 0 0"/>
+          <geom name="coordinate_axes//unnamed_geom_1" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes/green" fromto="0 0 0 0 0.10000000000000001 0"/>
+          <geom name="coordinate_axes//unnamed_geom_2" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes/blue" fromto="0 0 0 0 0 0.10000000000000001"/>
+        </body>
+      </body>
+      <body name="link1" pos="0 0 0.11" quat="1 0 0 0">
+        <geom name="//unnamed_geom_2" class="/" type="mesh" material="rubber" pos="0.02 0 -0.0029900000000000026" mesh="link1_mesh"/>
+        <site name="//unnamed_site_1" class="/" pos="0 0 0"/>
+        <body pos="0 0 0" name="coordinate_axes_1/">
+          <body name="coordinate_axes_1/axes">
+            <geom name="coordinate_axes_1//unnamed_geom_0" class="coordinate_axes_1/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes_1/red" fromto="0 0 0 0.10000000000000001 0 0"/>
+            <geom name="coordinate_axes_1//unnamed_geom_1" class="coordinate_axes_1/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes_1/green" fromto="0 0 0 0 0.10000000000000001 0"/>
+            <geom name="coordinate_axes_1//unnamed_geom_2" class="coordinate_axes_1/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes_1/blue" fromto="0 0 0 0 0 0.10000000000000001"/>
+          </body>
+        </body>
+        <joint name="joint1" class="/" type="hinge" axis="0 0 1" range="-3.1415926535897931 3.1415926535897931" damping="0.20000000000000001"/>
+        <body name="link2" pos="0 0 1.0000000000000001e-05" quat="1 0 0 0">
+          <geom name="//unnamed_geom_3" class="/" type="mesh" material="metal_gradient_material" pos="0.02 0 -0.0030000000000000027" mesh="link2_mesh"/>
+          <site name="//unnamed_site_2" class="/" pos="0 0 0"/>
+          <body pos="0 0 0" name="coordinate_axes_2/">
+            <body name="coordinate_axes_2/axes">
+              <geom name="coordinate_axes_2//unnamed_geom_0" class="coordinate_axes_2/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes_2/red" fromto="0 0 0 0.10000000000000001 0 0"/>
+              <geom name="coordinate_axes_2//unnamed_geom_1" class="coordinate_axes_2/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes_2/green" fromto="0 0 0 0 0.10000000000000001 0"/>
+              <geom name="coordinate_axes_2//unnamed_geom_2" class="coordinate_axes_2/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes_2/blue" fromto="0 0 0 0 0 0.10000000000000001"/>
+            </body>
+          </body>
+          <joint name="joint2" class="/" type="hinge" axis="1 0 0" range="-3.1415926535897931 3.1415926535897931" damping="0.20000000000000001"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="motor1" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint1"/>
+    <position name="motor2" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint2"/>
+  </actuator>
+</mujoco>
