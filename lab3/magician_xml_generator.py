@@ -1,6 +1,10 @@
 from dm_control import mjcf
 import numpy as np
+import mujoco.viewer
+from mujoco import MjModel, MjData
 import re
+import time
+import os
 
 
 def build_coordinate_axes(axis_length=0.1, radius=0.005):
@@ -60,47 +64,18 @@ def build_robot():
     model.worldbody.add('light', pos=[0, 0, 10], dir=[0, 0, -1])
 
     # ========== 材质定义 ==========
-    model.asset.add("material", name="blue", rgba=[0, 0, 1, 0.5])
-    model.asset.add("material", name="black", rgba=[0, 0, 0, 0.5])
-    model.asset.add("material", name="white", rgba=[1, 1, 1, 0.5])
-    # - 颜色质感示例
-    # 金属质感材质（高反光）
-    model.asset.add("material", name="metal", rgba=[0.8, 0.8, 0.8, 1], 
-                    shininess=1.0, specular=1.0, reflectance=0.5)
-    # 塑料质感材质（中等反光）
-    model.asset.add("material", name="plastic", rgba=[1, 1, 1, 1],
-                    shininess=0.5, specular=0.3)
-    # 橡胶质感材质（低反光）
-    model.asset.add("material", name="rubber", rgba=[0.2, 0.2, 0.2, 1],
-                    shininess=0.1, specular=0.1)
-    # - 渐变贴图示例（gradient）
-    # 从蓝色渐变到白色
-    model.asset.add('texture', name='blue_gradient', type='2d', builtin='gradient',
-                    rgb1=[0, 0, 1], rgb2=[1, 1, 1], width=100, height=100)
-    model.asset.add('material', name='gradient_material', texture='blue_gradient',
-                    texuniform=True)
     # 金属渐变效果
-    model.asset.add('texture', name='metal_gradient', type='2d', builtin='gradient',
+    model.asset.add('texture', name='metal_gradient_bright', type='2d', builtin='gradient',
                     rgb1=[0.8, 0.8, 0.8], rgb2=[0.2, 0.2, 0.2], width=100, height=100)
-    model.asset.add('material', name='metal_gradient_material', texture='metal_gradient',
+    model.asset.add('material', name='metal_gradient_bright_material', texture='metal_gradient_bright',
                     texuniform=True, reflectance=0.5)
-    # - 棋盘格贴图示例（checker）
-    # 经典黑白棋盘
-    model.asset.add('texture', name='chess', type='2d', builtin='checker',
-                    rgb1=[0, 0, 0], rgb2=[1, 1, 1], width=300, height=300, mark='edge',
-                    markrgb=[0.8, 0.8, 0.8])
-    model.asset.add('material', name='chess_material', texture='chess',
-                    texrepeat=[5, 5])  # 重复5x5次
-    # - 纯色贴图示例（flat）
-    # 简单的纯红色
-    model.asset.add('texture', name='red_flat', type='2d', builtin='flat',
-                    rgb1=[1, 0, 0], width=300, height=300, mark='edge',
-                    markrgb=[0.8, 0.8, 0.8])
-    model.asset.add('material', name='red_flat_material', texture='red_flat')
-
+    model.asset.add('texture', name='metal_gradient_dark', type='2d', builtin='gradient',
+                    rgb1=[0.4, 0.4, 0.4], rgb2=[0.8, 0.8, 0.8], width=100, height=100)
+    model.asset.add('material', name='metal_gradient_dark_material', texture='metal_gradient_dark',
+                    texuniform=True, reflectance=0.5)
 
     # ========== 资源加载 ==========
-    model.compiler.meshdir = "./assets"
+    model.compiler.meshdir = os.path.join(os.path.dirname(__file__), "assets")
     model.asset.add(
         "mesh", name="base_mesh", file="magician_lite_base_simple.stl", scale=[0.001, 0.001, 0.001]
     )
@@ -110,28 +85,56 @@ def build_robot():
     model.asset.add(
         "mesh", name="link2_mesh", file="magician_lite_link2_simple.stl", scale=[0.001, 0.001, 0.001]
     )
-
-
+    model.asset.add(
+        "mesh", name="link3_mesh", file="magician_lite_link3_simple.stl", scale=[0.001, 0.001, 0.001]
+    )
+    model.asset.add(
+        "mesh", name="link4_mesh", file="magician_lite_link4_simple.stl", scale=[0.001, 0.001, 0.001]
+    )
+    model.asset.add(
+        "mesh", name="link5_mesh", file="magician_lite_link5_simple.stl", scale=[0.001, 0.001, 0.001]
+    )
+    
     # ========== 搭建机械臂 ==========
     worldbody = model.worldbody
     base_body = worldbody.add("body", name="base")
-    base_body.add("geom", type="mesh", mesh="base_mesh", material="plastic", pos=[0.02, 0, 0.107])
+    base_body.add("geom", type="mesh", mesh="base_mesh", material="metal_gradient_bright_material", pos=[0.02, 0, 0.107])
     base_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
 
-    # 添加连杆
-    link1_body = base_body.add("body", name="link1", pos=[0, 0, 0.11], quat=[1, 0, 0, 0])
-    link1_body.add("geom", type="mesh", mesh="link1_mesh", material="rubber", pos=[0.02, 0, 0.107-0.11+1e-5])
+    # 添加连杆 1
+    link1_body = base_body.add("body", name="link1", pos=[0, 0, 0.122], quat=[1, 0, 0, 0])
+    link1_body.add("geom", type="mesh", mesh="link1_mesh", material="metal_gradient_dark_material", pos=[0.02, 0, 0.107-0.122])
     link1_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
     joint1 = link1_body.add("joint", name="joint1", type="hinge", axis=[0, 0, 1], range=[-np.pi, np.pi], damping="0.2")
     model.actuator.add("position", name="motor1", joint=joint1, gear=[1], ctrlrange=[-np.pi, np.pi])
 
-    # 添加连杆
+    # 添加连杆 2
     link2_body = link1_body.add("body", name="link2", pos=[0, 0, 1e-5], quat=[1, 0, 0, 0])
-    link2_body.add("geom", type="mesh", mesh="link2_mesh", material="metal_gradient_material", pos=[0.02, 0, 0.107-0.11])
+    link2_body.add("geom", type="mesh", mesh="link2_mesh", material="metal_gradient_bright_material", pos=[0.02, 0, 0.107-0.122])
     link2_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
     joint2 = link2_body.add("joint", name="joint2", type="hinge", axis=[1, 0, 0], range=[-np.pi, np.pi], damping="0.2")
     model.actuator.add("position", name="motor2", joint=joint2, gear=[1], ctrlrange=[-np.pi, np.pi])
 
+    # 添加连杆 3
+    link3_body = link2_body.add("body", name="link3", pos=[0, 0, 0.15], quat=[1, 0, 0, 0])
+    link3_body.add("geom", type="mesh", mesh="link3_mesh", material="metal_gradient_dark_material", pos=[0.02, 0, 0.107-0.122-0.15])
+    link3_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
+    joint3 = link3_body.add("joint", name="joint3", type="hinge", axis=[1, 0, 0], range=[-np.pi, np.pi], damping="0.2")
+    model.actuator.add("position", name="motor3", joint=joint3, gear=[1], ctrlrange=[-np.pi, np.pi])
+
+    # 添加连杆 4
+    link4_body = link3_body.add("body", name="link4", pos=[0, -0.15, 0], quat=[1, 0, 0, 0])
+    link4_body.add("geom", type="mesh", mesh="link4_mesh", material="metal_gradient_bright_material", pos=[0.02, 0.15, 0.107-0.122-0.15])
+    link4_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
+    joint4 = link4_body.add("joint", name="joint4", type="hinge", axis=[1, 0, 0], range=[-np.pi, np.pi], damping="0.2")
+    model.actuator.add("position", name="motor4", joint=joint4, gear=[1], ctrlrange=[-np.pi, np.pi])
+    
+    # 添加连杆 5
+    link5_body = link4_body.add("body", name="link5", pos=[0, -0.09, 0], quat=[1, 0, 0, 0])
+    link5_body.add("geom", type="mesh", mesh="link5_mesh", material="metal_gradient_dark_material", pos=[0.02, 0.15+0.09, 0.107-0.122-0.15])
+    link5_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
+    joint5 = link5_body.add("joint", name="joint5", type="hinge", axis=[0, 0, 1], range=[-np.pi, np.pi], damping="0.2")
+    model.actuator.add("position", name="motor5", joint=joint5, gear=[1], ctrlrange=[-np.pi, np.pi])
 
     # # 添加碰撞几何体（用简单形状替代复杂网格）
     # base_body.add(
@@ -176,7 +179,7 @@ def build_robot():
     return model
 
 if __name__ == "__main__":
-    output_file = "assets/magician.xml"
+    output_file = os.path.join(os.path.dirname(__file__), "assets/magician.xml")
 
     # 生成模型
     robot_model = build_robot()
@@ -188,3 +191,12 @@ if __name__ == "__main__":
     # 保存处理后的XML
     with open(output_file, "w") as f:
         f.write(processed_xml)
+
+    # 启动 mujoco viewer
+    mj_model = MjModel.from_xml_path(output_file)
+    mj_data = MjData(mj_model)
+    with mujoco.viewer.launch_passive(mj_model, mj_data) as viewer:
+        while viewer.is_running():
+            mujoco.mj_step(mj_model, mj_data)
+            viewer.sync()
+            time.sleep(0.001)
