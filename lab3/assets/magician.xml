@@ -46,7 +46,7 @@
     <geom name="ground" class="/" type="plane" size="5 5 1" material="groundplane"/>
     <light name="//unnamed_light_0" class="/" pos="0 0 10" dir="0 0 -1"/>
     <body name="base">
-      <geom name="//unnamed_geom_1" class="/" type="mesh" material="metal_gradient_bright_material" pos="0.02 0 0.107" mesh="base_mesh"/>
+      <geom name="base_geom" class="/" type="mesh" material="metal_gradient_bright_material" pos="0.02 0 0.107" mesh="base_mesh"/>
       <site name="//unnamed_site_0" class="/" pos="0 0 0"/>
       <body pos="0 0 0" name="coordinate_axes/">
         <body name="coordinate_axes/axes">
@@ -56,7 +56,7 @@
         </body>
       </body>
       <body name="link1" pos="0 0 0.12200999999999999" quat="1 0 0 0">
-        <geom name="//unnamed_geom_2" class="/" type="mesh" material="metal_gradient_dark_material" pos="0.02 0 -0.014999999999999999" mesh="link1_mesh"/>
+        <geom name="link1_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0.02 0 -0.014999999999999999" mesh="link1_mesh"/>
         <site name="//unnamed_site_1" class="/" pos="0 0 0"/>
         <body pos="0 0 0" name="coordinate_axes_1/">
           <body name="coordinate_axes_1/axes">
@@ -67,7 +67,7 @@
         </body>
         <joint name="joint1" class="/" type="hinge" axis="0 0 1" range="-3.1415926535897931 3.1415926535897931" damping="0.20000000000000001"/>
         <body name="link2" pos="0 0 0" quat="1 0 0 0">
-          <geom name="//unnamed_geom_3" class="/" type="mesh" material="metal_gradient_bright_material" pos="0.02 0 -0.014999999999999999" mesh="link2_mesh"/>
+          <geom name="link2_geom" class="/" type="mesh" material="metal_gradient_bright_material" pos="0.02 0 -0.014999999999999999" mesh="link2_mesh"/>
           <site name="//unnamed_site_2" class="/" pos="0 0 0"/>
           <body pos="0 0 0" name="coordinate_axes_2/">
             <body name="coordinate_axes_2/axes">
@@ -78,7 +78,7 @@
           </body>
           <joint name="joint2" class="/" type="hinge" axis="1 0 0" range="-3.1415926535897931 3.1415926535897931" damping="0.20000000000000001"/>
           <body name="link3" pos="0 -0.02 0.14999999999999999" quat="1 0 0 0">
-            <geom name="//unnamed_geom_4" class="/" type="mesh" material="metal_gradient_dark_material" pos="0.02 0.02 -0.16499999999999998" mesh="link3_mesh"/>
+            <geom name="link3_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0.02 0.02 -0.16499999999999998" mesh="link3_mesh"/>
             <site name="//unnamed_site_3" class="/" pos="0 0 0"/>
             <body pos="0 0 0" name="coordinate_axes_3/">
               <body name="coordinate_axes_3/axes">
@@ -89,7 +89,7 @@
             </body>
             <joint name="joint3" class="/" type="hinge" axis="1 0 0" range="-3.1415926535897931 3.1415926535897931" damping="0.20000000000000001"/>
             <body name="link4" pos="0 -0.16500000000000001 0" quat="1 0 0 0">
-              <geom name="//unnamed_geom_5" class="/" type="mesh" material="metal_gradient_bright_material" pos="0.02 0.185 -0.16499999999999998" mesh="link4_mesh"/>
+              <geom name="link4_geom" class="/" type="mesh" material="metal_gradient_bright_material" pos="0.02 0.185 -0.16499999999999998" mesh="link4_mesh"/>
               <site name="//unnamed_site_4" class="/" pos="0 0 0"/>
               <body pos="0 0 0" name="coordinate_axes_4/">
                 <body name="coordinate_axes_4/axes">
@@ -100,7 +100,7 @@
               </body>
               <joint name="joint4" class="/" type="hinge" axis="1 0 0" range="-3.1415926535897931 3.1415926535897931" damping="0.20000000000000001"/>
               <body name="link5" pos="0 -0.055 0" quat="1 0 0 0">
-                <geom name="//unnamed_geom_6" class="/" type="mesh" material="metal_gradient_dark_material" pos="0.02 0.23999999999999999 -0.16499999999999998" mesh="link5_mesh"/>
+                <geom name="link5_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0.02 0.23999999999999999 -0.16499999999999998" mesh="link5_mesh"/>
                 <site name="//unnamed_site_5" class="/" pos="0 0 0"/>
                 <body pos="0 0 0" name="coordinate_axes_5/">
                   <body name="coordinate_axes_5/axes">
