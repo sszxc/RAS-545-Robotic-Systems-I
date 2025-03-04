@@ -53,7 +53,6 @@ def build_coordinate_axes(axis_length=0.1, radius=0.005):
 
     return model
 
-
 def build_robot():
     model = mjcf.RootElement(model="robot_arm")
     model.option.gravity = [0, 0, 0]  # 关闭重力
@@ -139,45 +138,20 @@ def build_robot():
     joint5 = link5_body.add("joint", name="joint5", type="hinge", axis=[0, 0, 1], range=[-np.pi, np.pi], damping="0.2")
     model.actuator.add("position", name="motor5", joint=joint5, gear=[1], ctrlrange=[-np.pi, np.pi])
 
-    # # 添加碰撞几何体（用简单形状替代复杂网格）
-    # base_body.add(
-    #     "geom",
-    #     type="box",
-    #     size=[0.1, 0.1, 0.05],
-    #     pos=[0, 0, 0.025],
-    #     contype=1,
-    #     conaffinity=1,
-    # )  # 启用碰撞
+    # 添加一个 freejoint ball 用于指示器
+    ball = model.worldbody.add('body', name='ball')
+    ball.add('geom', type='sphere', size=[0.01], pos=[0, 0, 0], rgba=[1, 1, 0, 1],  # 半径 0.02
+                contype=0, conaffinity=0)
+    ball_joint_x = ball.add('joint', name='joint_x', type='slide', axis=[1, 0, 0], damping="5")  # , range=[-1, 1]
+    ball_joint_y = ball.add('joint', name='joint_y', type='slide', axis=[0, 1, 0], damping="5")  # , range=[-1, 1]
+    ball_joint_z = ball.add('joint', name='joint_z', type='slide', axis=[0, 0, 1], damping="5")  # , range=[-1, 1]
+    
+    ball.add("site").attach(build_coordinate_axes(axis_length=0.05, radius=0.003))
 
-    # # ----- 第1关节和连杆 -----
-    # link1_body = base_body.add("body", name="link1", pos=[0, 0, 0.1])
-    # # 添加旋转关节（绕Z轴）
-    # joint1 = link1_body.add(
-    #     "joint",
-    #     name="joint1",
-    #     type="hinge",
-    #     axis=[0, 0, 1],
-    #     range=[-np.pi / 2, np.pi / 2],
-    # )  # -90°~90°
-    # # 添加视觉几何体（STL 网格）
-    # link1_body.add("geom", type="mesh", mesh="link1_mesh")
-    # # 添加碰撞几何体（圆柱近似）
-    # link1_body.add(
-    #     "geom",
-    #     type="cylinder",
-    #     size=[0.05, 0.15],
-    #     pos=[0, 0, 0.1],
-    #     contype=1,
-    #     conaffinity=1,
-    # )
-    # # 设置惯性属性（质量、质心、惯性矩阵）
-    # link1_body.add(
-    #     "inertial", mass=1.5, pos=[0, 0, 0.1], diaginertia=[0.05, 0.05, 0.01]
-    # )
-
-    # # ========== 添加执行器 ==========
-    # model.actuator.add("motor", name="motor1", joint=joint1, gear=100)
-    # # model.actuator.add("motor", name="motor2", joint=joint2, gear=50)
+    # 添加执行器来控制关节
+    model.actuator.add('position', name=f'ball_x', joint=ball_joint_x, kp="20", kv="0.5")  # ctrlrange=[-1.5, 1.5], ctrllimited="false")
+    model.actuator.add('position', name=f'ball_y', joint=ball_joint_y, kp="20", kv="0.5")  # ctrlrange=[-1.5, 1.5], ctrllimited="false")
+    model.actuator.add('position', name=f'ball_z', joint=ball_joint_z, kp="20", kv="0.5")  # ctrlrange=[-1.5, 1.5], ctrllimited="false")
 
     return model
 
@@ -204,7 +178,7 @@ if __name__ == "__main__":
             viewer.sync()
             time.sleep(0.001)
             # 打印最后一个 link5 的位姿
-            geom_id = mj_model.geom('link5_geom').id
-            print(f'position:\n{mj_data.geom_xpos[geom_id]}')
-            print(f'rotation:\n{mj_data.geom_xmat[geom_id].reshape(3,3)}')
-            print()
+            # geom_id = mj_model.geom('link5_geom').id
+            # print(f'position:\n{mj_data.geom_xpos[geom_id]}')
+            # print(f'rotation:\n{mj_data.geom_xmat[geom_id].reshape(3,3)}')
+            # print()

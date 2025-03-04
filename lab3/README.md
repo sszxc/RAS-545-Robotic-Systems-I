@@ -21,8 +21,13 @@ It is important to note that the Magician robotic arm’s joint 3 actually has t
 
 Using the D-H parameters obtained from lab1 and the base-to-end transformation matrix, the symbolic expression for the forward kinematics of the robotic arm can be derived. By treating joint angles as variables and setting constraints between them (including joint angle limits and coupling relationships), the symbolic solution for the inverse kinematics of the robotic arm can be obtained.
 
+However, the inverse kinematics equations are highly nonlinear and complex, especially in robotic arm models where multiple joint angles are involved. Each angle introduces sin and cos functions. Even after some simplifications—for example, pre-determining the angles of θ₁ and θ₅ through observation, treating θ₄ as a dependent variable, and only considering θ₂ and θ₃ as variables—SymPy’s solve function still struggles to efficiently find an analytical solution. In fact, I have never succeeded.
+
+
 ### Obtain Numerical Solution using Scipy
 
 > lab3_dobot_ik.py `dobot_ik_numerical()`
 
 By taking the difference between the target position and the transformation matrix expression as the minimization objective, and setting up the optimization constraints (joint angle limits and coupling relationships), the inverse kinematics numerical solution of the robotic arm can also be obtained using `scipy.optimize.minimize` to solve the optimization problem.
+
+Note that the initial guess (initial_guess) has a significant impact on the result, as there may be multiple solutions for the same target position. The initial guess determines which solution is selected.

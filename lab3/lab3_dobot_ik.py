@@ -1,5 +1,10 @@
+import time
+import mujoco
+import mujoco.viewer
+from mujoco import MjModel, MjData
 import numpy as np
-from sympy import symbols, cos, sin, pi, Matrix, simplify, atan2, sqrt, Eq, solve, Float, Symbol
+import sympy as sp
+from sympy import simplify
 import roboticstoolbox as rtb
 from scipy.optimize import minimize
 
@@ -10,167 +15,175 @@ from lab1.lab1_dobot_dh import Dobot
 
 
 def dobot_ik_analytical(x_target, y_target, z_target):
-    # 定义关节角度符号变量
-    theta1, theta2 = symbols('theta1 theta2')
-    theta3 = -(theta2 + theta1)
+    # define symbols
+    theta1, theta2, theta3, theta4, theta5 = sp.symbols('theta1 theta2 theta3 theta4 theta5')
 
-    l1 = Symbol('0.15')
-    l2 = Symbol('0.09')
+    theta4 = -(theta3 + theta2)
 
-    # T01 = Matrix([
-    #     [cos(theta0), 0, sin(theta0), 0],
-    #     [sin(theta0), 0, -cos(theta0), 0],
-    #     [0, -1, 0, 0],
-    #     [0, 0, 0, 1]
-    # ])
-    T12 = Matrix([
-        [sin(theta1), cos(theta1), 0, l1*sin(theta1)],
-        [-cos(theta1), sin(theta1), 0, -l1*cos(theta1)],
+    # define each joint's homogeneous transformation matrix
+    T01 = sp.Matrix([
+        [sp.cos(theta1), 0, sp.sin(theta1), 0],
+        [sp.sin(theta1), 0, -sp.cos(theta1), 0],
+        [0, -1, 0, 0],
+        [0, 0, 0, 1]
+    ])
+    T12 = sp.Matrix([
+        [sp.cos(theta2 - sp.pi/2), -sp.sin(theta2 - sp.pi/2), 0, 0.15 * sp.cos(theta2 - sp.pi/2)],
+        [sp.sin(theta2 - sp.pi/2), sp.cos(theta2 - sp.pi/2), 0, 0.15 * sp.sin(theta2 - sp.pi/2)],
         [0, 0, 1, 0],
         [0, 0, 0, 1]
     ])
-    T23 = Matrix([
-        [-sin(theta2), -cos(theta2), 0, -l1*sin(theta2)],
-        [cos(theta2), -sin(theta2), 0, l1*cos(theta2)],
+    T23 = sp.Matrix([
+        [sp.cos(theta3 + sp.pi/2), -sp.sin(theta3 + sp.pi/2), 0, 0.15 * sp.cos(theta3 + sp.pi/2)],
+        [sp.sin(theta3 + sp.pi/2), sp.cos(theta3 + sp.pi/2), 0, 0.15 * sp.sin(theta3 + sp.pi/2)],
         [0, 0, 1, 0],
         [0, 0, 0, 1]
     ])
-    T34 = Matrix([
-        [cos(theta3), 0, sin(theta3), l2*cos(theta3)],
-        [sin(theta3), 0, -cos(theta3), l2*sin(theta3)],
+    T34 = sp.Matrix([
+        [sp.cos(theta4), 0, sp.sin(theta4), 0.09 * sp.cos(theta4)],
+        [sp.sin(theta4), 0, -sp.cos(theta4), 0.09 * sp.sin(theta4)],
         [0, 1, 0, 0],
         [0, 0, 0, 1]
     ])
-    # T45 ignored
+    T45 = sp.Matrix([
+        [sp.cos(theta5), -sp.sin(theta5), 0, 0],
+        [sp.sin(theta5), sp.cos(theta5), 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ])
 
-    # 计算总变换矩阵
-    T_total = T12 * T23 * T34
-    T_total = simplify(T_total)  # 简化表达式
-    # ⎡1  0  0   0.15⋅sin(θ₂) + 0.15⋅cos(θ₂ + θ₃) + 0.09⎤
-    # ⎢0  0  -1     0.15⋅sin(θ₂ + θ₃) - 0.15⋅cos(θ₂)    ⎥
-    # ⎢0  1  0                      0                   ⎥
-    # ⎣0  0  0                      1                   ⎦
+    # calculate total transformation matrix
+    T05 = T01 * T12 * T23 * T34  # * T45  # temporary ignore theta5
+    
+    T_total = simplify(T05)  # simplify expression
+    sp.pprint(T_total)
 
-    px = T_total[0, 3]
-    py = T_total[1, 3]
-    pz = T_total[2, 3]
+    # extract end-effector pose
+    position = T_total[:3, 3]  # position part
+    orientation = T_total[:3, :3]  # orientation part
 
-    # ==========
+    # build equations
+    target_position = sp.Matrix([x_target, y_target, z_target])
+    
+    # solve theta1
+    theta1_solution = sp.atan2(target_position[1], target_position[0])
+    T05_with_theta1 = T05.subs(theta1, theta1_solution)
+    T05_with_theta1 = simplify(T05_with_theta1)  # simplify expression
+    position_with_theta1 = T05_with_theta1[:3, 3]
+    sp.pprint(T05_with_theta1[:3, 3])
 
-    theta0 = atan2(y_target, x_target)
+    # solve theta2 and theta3
+    solutions = sp.solve(position_with_theta1 - target_position, (theta2, theta3), dict=True)
 
-    transformed_x_target = x_target**2 + y_target**2
-    transformed_y_target = z_target
-    transformed_z_target = 0.0
+    # print results
+    sp.pprint(solutions)
+    # convert symbolic solution to float
+    theta1_val = float(theta1_solution.evalf())
+    theta2_val = float(solutions[0][theta2].evalf()) 
+    theta3_val = float(solutions[0][theta3].evalf())
+    theta4_val = float(-(solutions[0][theta2] + solutions[0][theta3]).evalf())
+    
+    return np.array([theta1_val, theta2_val, theta3_val, theta4_val, 0.0])
 
-    equations = [
-        Eq(px, transformed_x_target),
-        Eq(py, transformed_y_target),
-        Eq(pz, transformed_z_target)
-    ]
 
-    solutions = solve(equations, (theta1, theta2, theta3), dict=True)
-    # TODO strange answer here
-    # TODO need to add offset for angles here
-    return solutions
-
-def dobot_ik_numerical(x_target, y_target, z_target, x0=[0, 0]):
+def dobot_ik_numerical(x_target, y_target, z_target, x0=[0, 0, 0, 0, 0]):
     '''
-    x0: initial guess for theta1 and theta2
+    x0: initial guess for theta
     '''
     # use end-to-end matrix
     def objective(theta, target):
-        theta0 = theta[0]
-        theta1 = theta[1] - np.pi/2
-        theta2 = theta[2] + np.pi/2
-        px = (0.15*np.sin(theta1) + 0.15*np.cos(theta1 + theta2) + 0.09)*np.cos(theta0)
-        py = (0.15*np.sin(theta1) + 0.15*np.cos(theta1 + theta2) + 0.09)*np.sin(theta0)
-        pz = -0.15*np.sin(theta1 + theta2) + 0.15*np.cos(theta1)
+        theta1 = theta[0]
+        theta2 = theta[1]
+        theta3 = theta[2]
+        # ⎡cos(θ₁ - θ₅)  sin(θ₁ - θ₅)   0  (0.15⋅sin(θ₂) + 0.15⋅cos(θ₂ + θ₃) + 0.09)⋅cos(θ₁)⎤
+        # ⎢sin(θ₁ - θ₅)  -cos(θ₁ - θ₅)  0  (0.15⋅sin(θ₂) + 0.15⋅cos(θ₂ + θ₃) + 0.09)⋅sin(θ₁)⎥
+        # ⎢     0              0        1          -0.15⋅sin(θ₂ + θ₃) + 0.15⋅cos(θ₂)        ⎥
+        # ⎣     0              0        0                          1                        ⎦
+        px = (0.15*np.sin(theta2) + 0.15*np.cos(theta2 + theta3) + 0.09)*np.cos(theta1)
+        py = (0.15*np.sin(theta2) + 0.15*np.cos(theta2 + theta3) + 0.09)*np.sin(theta1)
+        pz = -0.15*np.sin(theta2 + theta3) + 0.15*np.cos(theta2)
         return (px - target[0])**2 + (py - target[1])**2 + (pz - target[2])**2
-    # 添加角度限制：theta1 和 theta2 都在 [-pi, pi] 之间
+
+    # add joint angle limits
     bounds = [(-np.pi, np.pi), (-np.pi/4, np.pi/2), (-np.pi/3, np.pi/3)]
-    # 使用 scipy.optimize.minimize 求解
-    result = minimize(objective, x0, args=([x_target, y_target, z_target]), bounds=bounds)
-    # 合并 theta0
-    return np.hstack([result.x, -(result.x[2] + result.x[1])])  # + theta3
+    # solve optimization problem
+    result = minimize(objective, x0[:3], args=([x_target, y_target, z_target]), bounds=bounds)
+    # print optimization error
+    print(f"Optimization error: {result.fun}")
+    # post-process, merge theta 4, theta 5
+    result.x[0] += np.pi/2  # mujoco base angle offset
+    return np.hstack([result.x, -(result.x[2] + result.x[1]), 0])
 
 
-    # optimize only theta1 and theta2
-    # theta0 = np.arctan2(y_target, x_target)
-    # transformed_target = [x_target**2 + y_target**2, z_target, 0.0]
-
-    # def objective(theta, target):
-    #     theta1 = theta[0] - np.pi/2
-    #     theta2 = theta[1] + np.pi/2
-    #     theta3 = -(theta2 + theta1)
-    #     px = 0.15*np.sin(theta1) + 0.15*np.sin(theta1 + theta2) + 0.09*np.sin(theta3)
-    #     py = -0.15*np.cos(theta1) - 0.15*np.cos(theta1 + theta2) - 0.09*np.cos(theta3)
-    #     pz = 0
-    #     return (px - target[0])**2 + (py - target[1])**2 + (pz - target[2])**2
-    # # 添加角度限制：theta1 和 theta2 都在 [-pi, pi] 之间
-    # bounds = [(-np.pi/4, np.pi/2), (-np.pi/3, np.pi/3)]
-    # # 使用 scipy.optimize.minimize 求解
-    # result = minimize(objective, x0, args=(transformed_target), bounds=bounds)
-    # # 合并 theta0
-    # return np.hstack([theta0, result.x, -(result.x[1] + result.x[0])])
+def get_square_points(square_vertices=None, num_points_per_edge=20):
+    '''define a square path in 3D space
+    '''
+    if square_vertices is None:
+        square_vertices = [  # define the four vertices of the square
+            [ 0.0, 0.2, 0.0],
+            [ 0.0, 0.2, 0.2],
+            [ 0.2, 0.2, 0.2],
+            [ 0.2, 0.2, 0.0]
+        ]
+    target_list = []
+    
+    for i in range(4):  # interpolate each edge of the square
+        start = square_vertices[i]
+        end = square_vertices[(i+1)%4]  # loop to the first point
+        # interpolate each edge linearly
+        for t in range(num_points_per_edge):
+            alpha = t / num_points_per_edge
+            point = [
+                start[0] + (end[0] - start[0]) * alpha,
+                start[1] + (end[1] - start[1]) * alpha, 
+                start[2] + (end[2] - start[2]) * alpha
+            ]
+            target_list.append(point)
+    return target_list
 
 
 if __name__ == "__main__":
     my_robot = Dobot()
-    input_q = [24.0200, 40.2303, 56.4400, 0.0000, -8.1800]
-    q = input_q.copy()
-    q[2] = -input_q[1] + input_q[2]
-    q[3] = -input_q[2]
-    target_q = [x/180*np.pi for x in q]
-
-    print("\nRobot position at joint angles", target_q, ":")
-    print(my_robot.fkine(target_q))
-
-    x_target, y_target, z_target = my_robot.fkine(target_q).A[0:3, 3]
-    # ik_solutions = dobot_ik_analytical(x_target, y_target, z_target)  # TODO not working
-
-    x_target, y_target, z_target = 0.0, 0.2, 0.1
-    x0 = [0, 0, 0]
-    ik_solutions_list = []  # 存储所有 IK 解
-    for x_target in np.linspace(-0.1, 0.1, 21):
-        ik_solutions = dobot_ik_numerical(x_target, y_target, z_target, x0=x0)
-        ik_solutions_list.append(np.hstack([ik_solutions.copy(), 0]))  # add theta4=0
-        x0 = ik_solutions[:3]
-        print(f"Target ee position: {x_target:>5.2f}, {y_target:>5.2f}, {z_target:>5.2f}", end="  ")
-        print(f"IK solutions: {ik_solutions}")
     
-    # # 将 IK 解转换为轨迹
-    # q0 = [0] * my_robot.n  # 初始位置
-    # qt = rtb.jtraj(q0, ik_solutions_list[0], 50)  # 从初始位置到第一个 IK 解
+    # ↓ analytical solution, not working
+    # x_target, y_target, z_target = 0.0, 0.2, 0.1
+    # ik_solutions = dobot_ik_analytical(x_target, y_target, z_target)
+    
+    # ↓ numerical solution, working
+    target_list = get_square_points()
+    x0 = [0, 0, 0, 0, 0]  # initial guess
+    ik_solutions_list = []
+    for target in target_list:
+        ik_solution = dobot_ik_numerical(target[0], target[1], target[2], x0=x0)
+        ik_solutions_list.append(ik_solution)
+        x0 = ik_solution  # 使用本次解作为下一次的初始值
+        print(f"Target ee position: {target[0]:>5.2f}, {target[1]:>5.2f}, {target[2]:>5.2f}", end="  ")
+        print(f"IK solutions: {ik_solution}")
 
-    # # generate trajectory
+    # # generate trajectory using rtbox
     # print(f"Start generating trajectory...")
     # traj_list = []
     # for index in range(len(ik_solutions_list)-1):
-    #     traj_list.append(rtb.jtraj(ik_solutions_list[index], ik_solutions_list[index+1], 10).q)
+    #     traj_list.append(rtb.jtraj(ik_solutions_list[index], ik_solutions_list[index+1], 2).q)
     # traj = np.vstack(traj_list)
 
-    # visualize motion
+    # # visualize motion
     # output_filename = "dobot_ik_motion.gif"
     # my_robot.plot(traj, backend='pyplot', movie=output_filename)
     # print(f"Trajectory generated as {output_filename}.")
 
-
-    import mujoco
-    import mujoco.viewer
-    from mujoco import MjModel, MjData
-    import time
+    # visualize motion using mujoco
     xml_path = os.path.join(os.path.dirname(__file__), "assets/magician.xml")
     mj_model = MjModel.from_xml_path(xml_path)
     mj_data = MjData(mj_model)
     index = 0
     with mujoco.viewer.launch_passive(mj_model, mj_data) as viewer:
         while viewer.is_running():
-            mj_data.qpos = ik_solutions_list[index]
+            mj_data.qpos[:5] = ik_solutions_list[index]
+            mj_data.qpos[-3:] = target_list[index]
             mujoco.mj_step(mj_model, mj_data)
             index += 1
             if index >= len(ik_solutions_list):
                 index = 0
-
             viewer.sync()
-            time.sleep(0.2)
+            time.sleep(0.1)

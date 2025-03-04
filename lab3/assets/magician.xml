@@ -9,6 +9,7 @@
     <default class="coordinate_axes_3/"/>
     <default class="coordinate_axes_4/"/>
     <default class="coordinate_axes_5/"/>
+    <default class="coordinate_axes_6/"/>
   </default>
   <asset>
     <texture name="groundplane" type="2d" builtin="checker" rgb1="0.20000000000000001 0.29999999999999999 0.40000000000000002" rgb2="0.5 0.59999999999999998 0.69999999999999996" mark="edge" markrgb="0.80000000000000004 0.80000000000000004 0.80000000000000004" width="300" height="300"/>
@@ -41,6 +42,9 @@
     <material name="coordinate_axes_5/red" class="coordinate_axes_5/" rgba="1 0 0 1"/>
     <material name="coordinate_axes_5/green" class="coordinate_axes_5/" rgba="0 1 0 1"/>
     <material name="coordinate_axes_5/blue" class="coordinate_axes_5/" rgba="0 0 1 1"/>
+    <material name="coordinate_axes_6/red" class="coordinate_axes_6/" rgba="1 0 0 1"/>
+    <material name="coordinate_axes_6/green" class="coordinate_axes_6/" rgba="0 1 0 1"/>
+    <material name="coordinate_axes_6/blue" class="coordinate_axes_6/" rgba="0 0 1 1"/>
   </asset>
   <worldbody>
     <geom name="ground" class="/" type="plane" size="5 5 1" material="groundplane"/>
@@ -116,6 +120,20 @@
         </body>
       </body>
     </body>
+    <body name="ball">
+      <geom name="//unnamed_geom_7" class="/" type="sphere" contype="0" conaffinity="0" size="0.01" rgba="1 1 0 1" pos="0 0 0"/>
+      <joint name="joint_x" class="/" type="slide" axis="1 0 0" damping="5"/>
+      <joint name="joint_y" class="/" type="slide" axis="0 1 0" damping="5"/>
+      <joint name="joint_z" class="/" type="slide" axis="0 0 1" damping="5"/>
+      <site name="//unnamed_site_6" class="/"/>
+      <body name="coordinate_axes_6/">
+        <body name="coordinate_axes_6/axes">
+          <geom name="coordinate_axes_6//unnamed_geom_0" class="coordinate_axes_6/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes_6/red" fromto="0 0 0 0.050000000000000003 0 0"/>
+          <geom name="coordinate_axes_6//unnamed_geom_1" class="coordinate_axes_6/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes_6/green" fromto="0 0 0 0 0.050000000000000003 0"/>
+          <geom name="coordinate_axes_6//unnamed_geom_2" class="coordinate_axes_6/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes_6/blue" fromto="0 0 0 0 0 0.050000000000000003"/>
+        </body>
+      </body>
+    </body>
   </worldbody>
   <actuator>
     <position name="motor1" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint1"/>
@@ -123,5 +141,8 @@
     <position name="motor3" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint3"/>
     <position name="motor4" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint4"/>
     <position name="motor5" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint5"/>
+    <position name="ball_x" class="/" joint="joint_x" kp="20" kv="0.5"/>
+    <position name="ball_y" class="/" joint="joint_y" kp="20" kv="0.5"/>
+    <position name="ball_z" class="/" joint="joint_z" kp="20" kv="0.5"/>
   </actuator>
 </mujoco>
