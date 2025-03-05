@@ -7,6 +7,7 @@ import sympy as sp
 from sympy import simplify
 import roboticstoolbox as rtb
 from scipy.optimize import minimize
+from collections import deque
 
 import os
 import sys
@@ -120,10 +121,10 @@ def get_square_points(square_vertices=None, num_points_per_edge=20):
     '''
     if square_vertices is None:
         square_vertices = [  # define the four vertices of the square
-            [ 0.0, 0.2, 0.0],
-            [ 0.0, 0.2, 0.2],
-            [ 0.2, 0.2, 0.2],
-            [ 0.2, 0.2, 0.0]
+            [-0.1, 0.2, 0.0],
+            [-0.1, 0.2, 0.2],
+            [ 0.1, 0.2, 0.2],
+            [ 0.1, 0.2, 0.0]
         ]
     target_list = []
     
@@ -142,25 +143,78 @@ def get_square_points(square_vertices=None, num_points_per_edge=20):
     return target_list
 
 
+def get_circle_points(center=[0, -0.15, 0.2], radius=0.08, num_points=100, normal=[0, 0, 1]):
+    '''define a circle path in 3D space
+    Args:
+        center: circle center position [x, y, z]
+        radius: circle radius
+        num_points: number of sampling points
+        normal: circle plane normal vector, default is [0, 0, 1] for xy plane
+    '''
+    # normalize the input vector
+    normal = np.array(normal)
+    normal = normal / np.linalg.norm(normal)
+    
+    # calculate the rotation matrix from z-axis to the target normal vector
+    z_axis = np.array([0, 0, 1])
+    # if the normal vector is close to the opposite direction of z-axis, use x-axis as the rotation axis
+    if np.allclose(normal, -z_axis):
+        rotation_axis = np.array([1, 0, 0])
+    else:
+        rotation_axis = np.cross(z_axis, normal)
+        rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+    
+    # calculate the rotation angle
+    cos_theta = np.dot(z_axis, normal)
+    theta = np.arccos(np.clip(cos_theta, -1.0, 1.0))
+    
+    # build the rotation matrix (Rodrigues' formula)
+    K = np.array([
+        [0, -rotation_axis[2], rotation_axis[1]],
+        [rotation_axis[2], 0, -rotation_axis[0]],
+        [-rotation_axis[1], rotation_axis[0], 0]
+    ])
+    R = np.eye(3) + np.sin(theta) * K + (1 - cos_theta) * np.dot(K, K)
+    
+    # generate points on the circle and rotate
+    target_list = []
+    for i in range(num_points):
+        alpha = 2 * np.pi * i / num_points
+        # generate points on the xy plane
+        point = np.array([
+            radius * np.cos(alpha),
+            radius * np.sin(alpha),
+            0
+        ])
+        # rotate to the target plane
+        rotated_point = np.dot(R, point)
+        # translate to the target position
+        final_point = rotated_point + center
+        target_list.append(final_point.tolist())
+    
+    return target_list
+
+
 if __name__ == "__main__":
     my_robot = Dobot()
     
-    # ↓ analytical solution, not working
+    # ↓ ====== analytical solution, not working ======
     # x_target, y_target, z_target = 0.0, 0.2, 0.1
     # ik_solutions = dobot_ik_analytical(x_target, y_target, z_target)
     
-    # ↓ numerical solution, working
+    # ↓ ====== numerical solution, working ======
     target_list = get_square_points()
+    # target_list = get_circle_points(center=[0, -0.2, 0.15], normal=[0, -1, 1])
     x0 = [0, 0, 0, 0, 0]  # initial guess
     ik_solutions_list = []
     for target in target_list:
         ik_solution = dobot_ik_numerical(target[0], target[1], target[2], x0=x0)
         ik_solutions_list.append(ik_solution)
-        x0 = ik_solution  # 使用本次解作为下一次的初始值
+        x0 = ik_solution  # use this solution as the initial value for the next iteration
         print(f"Target ee position: {target[0]:>5.2f}, {target[1]:>5.2f}, {target[2]:>5.2f}", end="  ")
         print(f"IK solutions: {ik_solution}")
 
-    # # generate trajectory using rtbox
+    # ====== generate trajectory using rtbox ======
     # print(f"Start generating trajectory...")
     # traj_list = []
     # for index in range(len(ik_solutions_list)-1):
@@ -172,7 +226,11 @@ if __name__ == "__main__":
     # my_robot.plot(traj, backend='pyplot', movie=output_filename)
     # print(f"Trajectory generated as {output_filename}.")
 
-    # visualize motion using mujoco
+    # ====== visualize motion using mujoco ======
+    trail_length = 80  # length of trail (number of history positions)
+    trail_opacity = 0.8  # initial opacity of trail
+    trail_history = deque(maxlen=trail_length)  # queue for storing history positions
+
     xml_path = os.path.join(os.path.dirname(__file__), "assets/magician.xml")
     mj_model = MjModel.from_xml_path(xml_path)
     mj_data = MjData(mj_model)
@@ -180,10 +238,31 @@ if __name__ == "__main__":
     with mujoco.viewer.launch_passive(mj_model, mj_data) as viewer:
         while viewer.is_running():
             mj_data.qpos[:5] = ik_solutions_list[index]
-            mj_data.qpos[-3:] = target_list[index]
+            # ====== isolated indicator ======
+            # mj_data.qpos[-3:] = target_list[index]  
+
+            # ====== draw trail ======
+            trail_history.appendleft(target_list[index])
+            # update geometry in user_scn
+            with viewer.lock():  # ensure thread safety
+                viewer.user_scn.ngeom = 0  # clear previous geometry
+                for i, pos in enumerate(trail_history):
+                    # fade alpha with time, simulate trail effect
+                    fade_alpha = trail_opacity * (1 - i / trail_length)
+                    mujoco.mjv_initGeom(
+                        viewer.user_scn.geoms[i],  # index of geometry
+                        type=mujoco.mjtGeom.mjGEOM_SPHERE,  # use sphere to represent trajectory point
+                        size=[0.004, 0, 0],  # sphere size
+                        pos=[pos[0], pos[1], pos[2]+0.06],  # position (compensate for the height of the base)
+                        mat=np.eye(3).flatten(),  # orientation (unit matrix)
+                        rgba=np.array([0.83, 0.98, 0.98, fade_alpha])  # color and transparency
+                    )
+                    viewer.user_scn.ngeom += 1
+
             mujoco.mj_step(mj_model, mj_data)
+            viewer.sync()
+
+            time.sleep(0.1)
             index += 1
             if index >= len(ik_solutions_list):
                 index = 0
-            viewer.sync()
-            time.sleep(0.1)
