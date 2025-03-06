@@ -203,6 +203,15 @@ if __name__ == "__main__":
     # ik_solutions = dobot_ik_analytical(x_target, y_target, z_target)
     
     # ↓ ====== numerical solution, working ======
+    x_target, y_target, z_target = 0.248, 0.111, -0.008
+    ik_solution = dobot_ik_numerical(x_target, y_target, z_target, x0=[0, 0, 0, 0, 0])
+    ik_solution = [angle * 180 / np.pi for angle in ik_solution]
+    print(f"Target ee position: {x_target:>5.2f}, {y_target:>5.2f}, {z_target:>5.2f}")
+    ik_solution[0] -= 90  # mujoco base angle offset
+    print(f"IK solutions: {ik_solution}")
+
+
+    # ↓ ====== continuous trajectory ======
     target_list = get_square_points()
     # target_list = get_circle_points(center=[0, -0.2, 0.15], normal=[0, -1, 1])
     x0 = [0, 0, 0, 0, 0]  # initial guess
