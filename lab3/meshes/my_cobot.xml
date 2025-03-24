@@ -1,0 +1,109 @@
+<mujoco model="robot_arm">
+  <compiler angle="radian"/>
+  <option gravity="0 0 0"/>
+  <visual>
+    <global azimuth="70" elevation="-30" offwidth="1280" offheight="720"/>
+  </visual>
+  <default>
+    <default class="/"/>
+    <default class="coordinate_axes/"/>
+    <default class="coordinate_axes_1/"/>
+  </default>
+  <asset>
+    <texture name="groundplane" type="2d" builtin="checker" rgb1="0.20000000000000001 0.29999999999999999 0.40000000000000002" rgb2="0.5 0.59999999999999998 0.69999999999999996" mark="edge" markrgb="0.80000000000000004 0.80000000000000004 0.80000000000000004" width="300" height="300"/>
+    <material name="groundplane" class="/" texture="groundplane" texrepeat="5 5" texuniform="true" reflectance="0.5"/>
+    <texture name="metal_gradient_bright" type="2d" builtin="gradient" rgb1="0.80000000000000004 0.80000000000000004 0.80000000000000004" rgb2="0.20000000000000001 0.20000000000000001 0.20000000000000001" width="100" height="100"/>
+    <material name="metal_gradient_bright_material" class="/" texture="metal_gradient_bright" texuniform="true" reflectance="0.5"/>
+    <texture name="metal_gradient_dark" type="2d" builtin="gradient" rgb1="0.40000000000000002 0.40000000000000002 0.40000000000000002" rgb2="0.80000000000000004 0.80000000000000004 0.80000000000000004" width="100" height="100"/>
+    <material name="metal_gradient_dark_material" class="/" texture="metal_gradient_dark" texuniform="true" reflectance="0.5"/>
+    <texture name="tag_texture" file="tag_texture.png" gridsize="3 4" gridlayout=".U..LBRF.D.."/>
+    <material name="tag_material" class="/" texture="tag_texture" specular="15" shininess="0"/>
+    <mesh name="link0" class="/" file="link0.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link1" class="/" file="link1.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link2" class="/" file="link2.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link3" class="/" file="link3.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link4" class="/" file="link4.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link5" class="/" file="link5.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="link6" class="/" file="link6.stl" scale="0.001 0.001 0.001"/>
+    <mesh name="camera" class="/" file="camera.stl" scale="0.0040000000000000001 0.0040000000000000001 0.0040000000000000001"/>
+    <mesh name="tag" class="/" file="tag_d36.stl" scale="0.001 0.001 0.001"/>
+    <material name="coordinate_axes/red" class="coordinate_axes/" rgba="1 0 0 1"/>
+    <material name="coordinate_axes/green" class="coordinate_axes/" rgba="0 1 0 1"/>
+    <material name="coordinate_axes/blue" class="coordinate_axes/" rgba="0 0 1 1"/>
+    <material name="coordinate_axes_1/red" class="coordinate_axes_1/" rgba="1 0 0 1"/>
+    <material name="coordinate_axes_1/green" class="coordinate_axes_1/" rgba="0 1 0 1"/>
+    <material name="coordinate_axes_1/blue" class="coordinate_axes_1/" rgba="0 0 1 1"/>
+  </asset>
+  <worldbody>
+    <geom name="ground" class="/" type="plane" size="5 5 1" material="groundplane"/>
+    <light name="//unnamed_light_0" class="/" pos="0 0 10" dir="0 0 -1"/>
+    <camera name="demo-cam" class="/" pos="-0.10000000000000001 -1 0.69999999999999996" xyaxes="0.96599999999999997 -0.25900000000000001 0 -0.10199999999999999 0.38 0.91900000000000004"/>
+    <body name="base" axisangle="1 0 0 0">
+      <geom name="link0_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0 0 0" mesh="link0"/>
+      <body name="link1" pos="0 0 0.10967">
+        <geom name="link1_geom" class="/" type="mesh" material="metal_gradient_bright_material" pos="0 0 -0.10967" mesh="link1"/>
+        <joint name="joint1" class="/" type="hinge" axis="0 0 1" range="-3.1415926535897931 3.1415926535897931" damping="2"/>
+        <body name="link2" pos="0 0.108 0.08967">
+          <geom name="link2_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0 -0.108 -0.19933999999999999" mesh="link2"/>
+          <joint name="joint2" class="/" type="hinge" axis="0 1 0" range="-3.1415926535897931 3.1415926535897931" damping="2"/>
+          <body name="link3" pos="0 0 0.25" axisangle="1 0 0 0">
+            <geom name="link3_geom" class="/" type="mesh" material="metal_gradient_bright_material" pos="0 -0.108 -0.45100000000000001" mesh="link3"/>
+            <joint name="joint3" class="/" type="hinge" axis="0 1 0" range="-3.1415926535897931 3.1415926535897931" damping="2"/>
+            <body name="link4" pos="0 0 0.25" axisangle="1 0 0 0">
+              <geom name="link4_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0 -0.108 -0.69933999999999996" mesh="link4"/>
+              <joint name="joint4" class="/" type="hinge" axis="0 1 0" range="-3.1415926535897931 3.1415926535897931" damping="2"/>
+              <body name="link5" pos="0 0 0.054550000000000001" axisangle="1 0 0 0">
+                <geom name="link5_geom" class="/" type="mesh" material="metal_gradient_bright_material" pos="0 -0.10786 -0.75388999999999995" mesh="link5"/>
+                <joint name="joint5" class="/" type="hinge" axis="0 0 1" range="-3.1415926535897931 3.1415926535897931" damping="2"/>
+                <body name="link6" pos="0 0.050860000000000002 0.051549999999999999" axisangle="1 0 0 0">
+                  <geom name="link6_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0 -0.180786 -0.80388999999999999" mesh="link6"/>
+                  <joint name="joint6" class="/" type="hinge" axis="0 1 0" range="-3.1415926535897931 3.1415926535897931" damping="2"/>
+                </body>
+                <body name="ee_tag" pos="0 -0.048000000000000001 0.051549999999999999" quat="0.70699999999999996 -0.70699999999999996 0 0">
+                  <geom name="ee_tag_geom" class="/" type="box" contype="0" conaffinity="0" size="0.017999999999999999 0.017999999999999999 0.001" material="tag_material" density="1"/>
+                  <site name="//unnamed_site_0" class="/"/>
+                  <body name="coordinate_axes/">
+                    <body name="coordinate_axes/axes">
+                      <geom name="coordinate_axes//unnamed_geom_0" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes/red" fromto="0 0 0 0.050000000000000003 0 0"/>
+                      <geom name="coordinate_axes//unnamed_geom_1" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes/green" fromto="0 0 0 0 0.050000000000000003 0"/>
+                      <geom name="coordinate_axes//unnamed_geom_2" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes/blue" fromto="0 0 0 0 0 0.050000000000000003"/>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="camera">
+      <geom name="camera" class="/" type="mesh" contype="0" conaffinity="0" material="metal_gradient_bright_material" density="1" pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mesh="camera"/>
+      <site name="//unnamed_site_1" class="/"/>
+      <body name="coordinate_axes_1/">
+        <body name="coordinate_axes_1/axes">
+          <geom name="coordinate_axes_1//unnamed_geom_0" class="coordinate_axes_1/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes_1/red" fromto="0 0 0 0.089999999999999997 0 0"/>
+          <geom name="coordinate_axes_1//unnamed_geom_1" class="coordinate_axes_1/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes_1/green" fromto="0 0 0 0 0.089999999999999997 0"/>
+          <geom name="coordinate_axes_1//unnamed_geom_2" class="coordinate_axes_1/" type="capsule" contype="0" conaffinity="0" size="0.0030000000000000001" material="coordinate_axes_1/blue" fromto="0 0 0 0 0 0.089999999999999997"/>
+        </body>
+      </body>
+      <freejoint name="camera_joint"/>
+    </body>
+  </worldbody>
+  <contact>
+    <exclude name="link0_1" body1="base" body2="link1"/>
+    <exclude name="link1_2" body1="link1" body2="link2"/>
+    <exclude name="link2_3" body1="link2" body2="link3"/>
+    <exclude name="link3_4" body1="link3" body2="link4"/>
+    <exclude name="link4_5" body1="link4" body2="link5"/>
+    <exclude name="link5_6" body1="link5" body2="link6"/>
+    <exclude name="link3_5" body1="link3" body2="link5"/>
+  </contact>
+  <actuator>
+    <position name="motor1" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint1"/>
+    <position name="motor2" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint2"/>
+    <position name="motor3" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint3"/>
+    <position name="motor4" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint4"/>
+    <position name="motor5" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint5"/>
+    <position name="motor6" class="/" ctrlrange="-3.1415926535897931 3.1415926535897931" gear="1" joint="joint6"/>
+  </actuator>
+</mujoco>
