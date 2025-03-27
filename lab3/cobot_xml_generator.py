@@ -120,43 +120,43 @@ def build_robot():
     link1_body = base_body.add("body", name="link1", pos=[0, 0, 0.10967])
     link1_body.add("geom", name="link1_geom", type="mesh", mesh="link1", material="metal_gradient_bright_material", pos=[0.0, 0, -0.10967])
     # link1_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
-    joint1 = link1_body.add("joint", name="joint1", type="hinge", axis=[0, 0, 1], range=[-np.pi, np.pi], damping="2")
-    model.actuator.add("position", name="motor1", joint=joint1, gear=[1], ctrlrange=[-np.pi, np.pi])
+    joint1 = link1_body.add("joint", name="joint1", type="hinge", axis=[0, 0, 1], range=[-np.pi, np.pi], damping="5")
+    model.actuator.add("position", name="motor1", joint=joint1, gear=[1], ctrlrange=[-np.pi, np.pi], kp="10")
 
     # # 添加连杆 2
     link2_body = link1_body.add("body", name="link2", pos=[0, 0.108,0.08967])
     link2_body.add("geom", name="link2_geom", type="mesh", mesh="link2", material="metal_gradient_dark_material", pos=[0, -0.108,-0.19934])
     # link2_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
-    joint2 = link2_body.add("joint", name="joint2", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="2")
-    model.actuator.add("position", name="motor2", joint=joint2, gear=[1], ctrlrange=[-np.pi, np.pi])
+    joint2 = link2_body.add("joint", name="joint2", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="5")
+    model.actuator.add("position", name="motor2", joint=joint2, gear=[1], ctrlrange=[-np.pi, np.pi], kp="10")
 
     # 添加连杆 3
     link3_body = link2_body.add("body", name="link3", pos=[0, 0, 0.25], axisangle=[1, 0, 0, 0])
     link3_body.add("geom", name="link3_geom", type="mesh", mesh="link3", material="metal_gradient_bright_material", pos=[0, -0.108, -0.451])
     # link3_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
-    joint3 = link3_body.add("joint", name="joint3", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="2")
-    model.actuator.add("position", name="motor3", joint=joint3, gear=[1], ctrlrange=[-np.pi, np.pi])
+    joint3 = link3_body.add("joint", name="joint3", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="5")
+    model.actuator.add("position", name="motor3", joint=joint3, gear=[1], ctrlrange=[-np.pi, np.pi], kp="10")
 
     # 添加连杆 4
     link4_body = link3_body.add("body", name="link4", pos=[0,0, 0.25], axisangle=[1, 0, 0, 0])
     link4_body.add("geom", name="link4_geom", type="mesh", mesh="link4", material="metal_gradient_dark_material", pos=[0, -0.108, -0.69934])
     # link4_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
-    joint4 = link4_body.add("joint", name="joint4", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="2")
-    model.actuator.add("position", name="motor4", joint=joint4, gear=[1], ctrlrange=[-np.pi, np.pi])
+    joint4 = link4_body.add("joint", name="joint4", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="5")
+    model.actuator.add("position", name="motor4", joint=joint4, gear=[1], ctrlrange=[-np.pi, np.pi], kp="10")
 
     # 添加连杆 5
     link5_body = link4_body.add("body", name="link5", pos=[0, 0, 0.05455], axisangle=[1, 0, 0, 0])
     link5_body.add("geom", name="link5_geom", type="mesh", mesh="link5", material="metal_gradient_bright_material", pos=[0, -0.10786, -0.75389])
     # link5_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
-    joint5 = link5_body.add("joint", name="joint5", type="hinge", axis=[0, 0, 1], range=[-np.pi, np.pi], damping="2")
-    model.actuator.add("position", name="motor5", joint=joint5, gear=[1], ctrlrange=[-np.pi, np.pi])
+    joint5 = link5_body.add("joint", name="joint5", type="hinge", axis=[0, 0, 1], range=[-np.pi, np.pi], damping="5")
+    model.actuator.add("position", name="motor5", joint=joint5, gear=[1], ctrlrange=[-np.pi, np.pi], kp="10")
 
     # 添加连杆 6
     link6_body = link5_body.add("body", name="link6", pos=[0, 0.05086, 0.05455 - 0.003], axisangle=[1, 0, 0, 0])
     link6_body.add("geom", name="link6_geom", type="mesh", mesh="link6", material="metal_gradient_dark_material", pos=[0, -0.180786, -0.80389])
     # link6_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
-    joint6 = link6_body.add("joint", name="joint6", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="2")
-    model.actuator.add("position", name="motor6", joint=joint6, gear=[1], ctrlrange=[-np.pi, np.pi])
+    joint6 = link6_body.add("joint", name="joint6", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="5")
+    model.actuator.add("position", name="motor6", joint=joint6, gear=[1], ctrlrange=[-np.pi, np.pi], kp="10")
 
     # 添加末端 tag
     ee_tag = link5_body.add("body", name="ee_tag", pos=[0, -0.048, 0.05455 - 0.003], quat=[0.707, -0.707, 0, 0])

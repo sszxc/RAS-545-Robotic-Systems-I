@@ -1,4 +1,5 @@
 import numpy as np
+import ikpy
 from ikpy import chain
 from ikpy.link import OriginLink, URDFLink
 import matplotlib.pyplot as plt
@@ -13,15 +14,16 @@ from matplotlib.widgets import Button
 
 class Cobot_ikpy:
     def __init__(self):
+        # self.chain = ikpy.chain.Chain.from_urdf_file("lab3/my_cobot.urdf")
         # 创建自定义机械臂的Chain对象
         self.chain = chain.Chain(name='mycobot_manual', links=[
-            URDFLink("base_link", origin_translation=[0, 0, 0],     origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint1", origin_translation=[0, 0, 0.21934],  origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint2", origin_translation=[-0.25, 0, 0],    origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint3", origin_translation=[-0.25, 0, 0],    origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint4", origin_translation=[0, 0, -0.108],   origin_orientation=[-np.pi/2, 0, 0],    rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint5", origin_translation=[0, 0, 0.1091],   origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint6", origin_translation=[0, 0, -0.07586], origin_orientation=[np.pi, 0, 0],       rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
+            # OriginLink(),
+            URDFLink("base_link", origin_translation=[0, 0, 0],        origin_orientation=[0, 0, np.pi],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
+            URDFLink("joint1", origin_translation=[0, 0, 0.21934],     origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
+            URDFLink("joint2", origin_translation=[0, 0.25, 0],        origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
+            URDFLink("joint3", origin_translation=[0, 0.25, 0],        origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
+            URDFLink("joint4", origin_translation=[0, 0.1091, 0.108], origin_orientation=[-np.pi/2, 0, 0],    rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
+            URDFLink("joint5", origin_translation=[0, 0.07586, 0],     origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
         ])
 
     def ik(self, target_position, target_orientation=None, initial_position=None):
@@ -36,10 +38,8 @@ class Cobot_ikpy:
         )
         return joint_angles
 
-
     def fk(self, joint_angles):
         return self.chain.forward_kinematics(joint_angles)
-
 
 
 def keyboard_control():
@@ -47,8 +47,8 @@ def keyboard_control():
     cobot_ikpy = Cobot_ikpy()
 
     # 初始化关节角度 (各关节角度设为0)
-    # joint_angles = [0] * len(cobot_ikpy.chain.links)
-    joint_angles = [0, -np.pi/2, 0, +np.pi/2, 0, 0, 0]
+    joint_angles = [0] * len(cobot_ikpy.chain.links)
+    # joint_angles = [0, -np.pi/2, 0, +np.pi/2, 0, 0, 0]
 
     # 设置关节角度步长
     step = 0.1  # 弧度
@@ -104,15 +104,15 @@ def keyboard_control():
         """键盘事件处理函数"""
         nonlocal joint_angles
 
-        if event.key in ["1", "2", "3", "4", "5", "6", "7"]:
+        if event.key in ["1", "2", "3", "4", "5", "6", "7", "8"]:
             # 增加关节角度
             joint_idx = int(event.key) - 1
             joint_angles[joint_idx] = min(joint_angles[joint_idx] + step, np.pi)
             update_plot()
 
-        elif event.key in ["a", "s", "d", "f", "g", "h", "j"]:
+        elif event.key in ["a", "s", "d", "f", "g", "h", "j", "k"]:
             # 减少关节角度
-            key_map = {"a": 0, "s": 1, "d": 2, "f": 3, "g": 4, "h": 5, "j": 6}
+            key_map = {"a": 0, "s": 1, "d": 2, "f": 3, "g": 4, "h": 5, "j": 6, "k": 7}
             joint_idx = key_map[event.key]
             joint_angles[joint_idx] = max(joint_angles[joint_idx] - step, -np.pi)
             update_plot()
