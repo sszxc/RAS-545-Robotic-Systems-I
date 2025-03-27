@@ -4,7 +4,10 @@ import cv2
 import numpy as np
 
 
-def detect_line(frame):
+def detect_line(frame, block_imshow=False):
+    if block_imshow:  # disable opencv imshow()
+        cv2.imshow = lambda *args, **kwargs: None
+        cv2.waitKey = lambda *args, **kwargs: None
     # Convert to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # cv2.imshow('gray', gray)

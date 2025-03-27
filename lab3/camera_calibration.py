@@ -606,13 +606,14 @@ def pixel2base(pixel_coord, intrinsic, depth, base2camera=Transform.identity()):
 
 if __name__ == "__main__":
     # ==== calibration intrinsic ====
-    # camera_node = RGBCamera(source=1)
-    # calibrator = Intrinsic_Calibrator(board_name="Chessboard_9_7_0.5786782609")
-    # calibrator.run(camera_node)
+    camera_node = RGBCamera(source=0)
+    calibrator = Intrinsic_Calibrator(board_name="Chessboard_9_7_0.5786782609")
+    calibrator.run(camera_node)
+    exit()
 
     # ==== AprilTag ====
     camera_node = RGBCamera(
-        source=2,
+        source=1,
         intrinsic_path="calibration_output/intrinsic_03_20_17_05",
     )
     april = April(camera_node.get_intrinsic_list())
