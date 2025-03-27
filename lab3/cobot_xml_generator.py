@@ -94,12 +94,12 @@ def build_robot():
                     texuniform=True, reflectance=0.5)
 
     # tag 贴图
-    model.asset.add('texture', name='tag_texture', file='meshes/tag_texture.png', gridsize=[3, 4],
+    model.asset.add('texture', name='tag_texture', file='model/tag_texture.png', gridsize=[3, 4],
                     gridlayout=".U..LBRF.D..")  # TODO 仍然不是很懂这里怎么回事(FB翻了一下)
     model.asset.add('material', name='tag_material', texture='tag_texture', specular="15", shininess=".0")
 
     # ========== 资源加载 ==========
-    model.compiler.meshdir = os.path.join(os.path.dirname(__file__), "meshes")
+    model.compiler.meshdir = os.path.join(os.path.dirname(__file__), "model")
     model.asset.add("mesh", name="link0", file="link0.stl", scale=[0.001, 0.001, 0.001])
     model.asset.add("mesh", name="link1", file="link1.stl", scale=[0.001, 0.001, 0.001])
     model.asset.add("mesh", name="link2", file="link2.stl", scale=[0.001, 0.001, 0.001])
@@ -183,7 +183,7 @@ def build_robot():
     return model
 
 if __name__ == "__main__":
-    output_file = os.path.join(os.path.dirname(__file__), "meshes/my_cobot.xml")
+    output_file = os.path.join(os.path.dirname(__file__), "model/my_cobot.xml")
 
     # 生成模型
     robot_model = build_robot()

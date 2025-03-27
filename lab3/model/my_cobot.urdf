@@ -1,0 +1,153 @@
+<?xml version="1.0"?>
+<robot name="cobot">
+
+  <!-- Base Link -->
+  <link name="base_link"/>
+
+  <!-- Joint 1: d=219.34(mm->0.21934m), a=0, alpha=pi/2 -->
+  <link name="link1">
+    <inertial>
+      <origin xyz="0 0 0.11" rpy="0 0 0"/> <!-- 质心位置 -->
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.22" radius="0.05"/> <!-- 沿z轴的圆柱体 -->
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 0.8 1"/>
+      </material>
+    </visual>
+  </link>
+  
+  <joint name="joint1" type="revolute">
+    <origin xyz="0 0 0.21934" rpy="0 0 0"/> <!-- x=0, z=d,绕x轴旋转alpha=pi/2 -->
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="1"/>
+  </joint>
+
+  <!-- Joint 2: a=-250(mm->-0.25m), alpha=0 -->
+  <link name="link2">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0.05 0 -0.05" rpy="0 1.5708 0"/> <!-- Z 軸轉 90° = 沿 Y 軸 -->
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/> <!-- 沿x轴的圆柱体 -->
+      </geometry>
+      <color rgba="1 0 0 1"/>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <joint name="joint2" type="revolute">
+    <origin xyz="0.05 0 0.2" rpy="0 0 0"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+
+  <!-- Joint 3: a=-250(mm->-0.25m), alpha=0 -->
+  <link name="link3">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 1.5708 0"/> <!-- 圓柱轉 90°：沿 Y 軸 -->
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/>
+      </geometry>
+      <material name="green"/>
+      <color rgba="0 1 0 1"/>
+    </visual>
+  </link>
+
+  <joint name="joint3" type="revolute">
+    <origin xyz="0.05 0 0.25" rpy="0 0 0"/>
+    <parent link="link2"/>
+    <child link="link3"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+
+  <!-- Joint4: d=-108(mm->-0.108m), alpha=-pi/2 -->
+  <link name="link4">
+    <inertial>
+      <origin xyz="0 0 0.25" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+    <origin xyz="0 0 0" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder length="0.25" radius="0.05"/> <!-- 沿y轴的圆柱体 -->
+      </geometry>
+      <material name="yellow"/>
+    </visual>
+  </link>
+
+  <joint name="joint4" type="revolute">
+    <origin xyz="0 0 0.25" rpy="0 0 0"/> <!-- 绕x轴旋转-alpha=-pi/2 -->
+    <parent link="link3"/>
+    <child link="link4"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+
+  <!-- Joint5: d=109.1(mm->0.1091m), alpha=pi/2 -->
+  <link name="link5">
+    <inertial>
+      <origin xyz="0 0 0.0545" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder length="0.1091" radius="0.05"/>
+      </geometry>
+      <material name="purple"/>
+    </visual>
+  </link>
+
+  <joint name="joint5" type="revolute">
+    <origin xyz="0.15 0 0.1091" rpy="0 0 1.5708"/> <!-- 绕x轴旋转alpha=pi/2 -->
+    <parent link="link4"/>
+    <child link="link5"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+
+  <!-- Joint6: d=-75.86(mm->-0.07586m), alpha=pi -->
+  <link name="link6">
+    <inertial>
+      <origin xyz="0 0 -0.0379" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder length="0.07586" radius="0.05"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+  </link>
+
+  <joint name="joint6" type="revolute">
+    <origin xyz="0 0 0.1091" rpy="1.5708 0 0"/> <!-- 绕x轴旋转alpha=pi -->
+    <parent link="link5"/>
+    <child link="link6"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+
+</robot>

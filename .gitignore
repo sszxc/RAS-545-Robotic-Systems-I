@@ -3,3 +3,6 @@ __pycache__
 
 slprj
 *.slxc
+MUJOCO_LOG.TXT
+
+lab3/calibration_output
