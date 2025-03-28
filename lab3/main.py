@@ -13,24 +13,9 @@ from camera_calibration import RGBCamera, April
 from line_detection import detect_line
 from utils.transform_utils import Transform, Rotation
 from utils.rerun_board import RerunBoard
-from cobot_communicate import send_tcp_packet
+from cobot_communicate import send_robot_joint_angle, get_robot_joint_angle
+from cobot_ikpy_model import Cobot_ikpy
 
-mode = 0  # 0: 找相机, 1: 抓取, 2: 放置
-
-def get_robot_joint_angle():
-    SERVER_IP = "192.168.1.159"
-    SERVER_PORT = 5001
-    MESSAGE = "get_angles()"
-    result = send_tcp_packet(SERVER_IP, SERVER_PORT, MESSAGE)
-
-    data = "get_angles:[-152.558280,-40.508492,126.083485,-171.474609,-90.351562,-0.263672]"
-    # 使用正则表达式提取数字
-    numbers = re.findall(r"[-+]?\d*\.\d+|\d+", data)
-    # 转换为 float
-    angles = list(map(float, numbers))
-    angles[1] += 90
-    angles[3] += 90
-    return [a/180*np.pi for a in angles]
 
 def get_camera_to_tag(img, id=0):
     tag_size = 0.036
@@ -45,9 +30,26 @@ def get_camera_to_tag(img, id=0):
     else:
         return None, img
 
-def get_camera_to_line(img) -> tuple[list[tuple[int, int]] | None, np.ndarray]:
-    img, interpolated_coords = detect_line(img, block_imshow=True)
-    return interpolated_coords, img
+def get_camera_to_line(
+    img, table_depth, camera_pose: Transform
+) -> tuple[list[tuple[int, int]] | None, np.ndarray]:
+    intrinsic = np.array([
+        [1180.5678174909947, 0.0, 678.0955796013238],
+        [0.0, 1180.693516730357, 358.51815164541397],
+        [0.0, 0.0, 1.0]
+    ])
+    img, interpolated_coords, points_3D = detect_line(
+        img, intrinsic, table_depth, block_imshow=True
+    )
+    points_3D_Fbase_list = []
+    for index, pt3d in enumerate(points_3D):
+        points_3D_Fbase = (camera_pose.as_matrix() @ np.hstack((pt3d, [1])))[:3]
+        board.log(f"world/point_{index}",
+                rr.Points3D(positions=points_3D_Fbase, # colors=finger_config["color"][_ftp_index],
+                            radii=0.003,
+                ))
+        points_3D_Fbase_list.append(points_3D_Fbase)
+    return points_3D_Fbase_list, img
 
 def pixel2D_to_camera3D(pixel_coord, intrinsic, depth, base2camera=Transform.identity()):
     # 像素坐标系转到 base 坐标系
@@ -102,15 +104,19 @@ if __name__ == "__main__":
         if img is not None:
             break
 
+    cobot_ikpy = Cobot_ikpy()
+
     viewer = mujoco.viewer.launch_passive(mj_model, mj_data, key_callback=keyboardCallback)
     viewer.cam.azimuth = 70
     viewer.cam.elevation = -30
-    viewer.cam.distance = 1.2
-    viewer.cam.lookat = [0, 0, 0.5]
+    viewer.cam.distance = 1.6
+    viewer.cam.lookat = [0, 0, 0]
 
     current_robot_angle = get_robot_joint_angle()
+    fk_position = cobot_ikpy.fk(current_robot_angle)[:3, 3]
+    print(f"fk_position: {fk_position}")
     mj_data.qpos[:6] = np.array(current_robot_angle)
-    # mj_data.qpos[:6] = np.array([0, 0.7, 1.9, -1.0, -1.5, 0])
+    # mj_data.qpos[:6] = np.array([0, 0.7, 1.9, -1.0, -1.5, 0])  # for test
     mj_data.qpos[6:] = np.array([0.4, 0.1, 0.5, 1, 0, 0, 0])
     mj_data.ctrl[:] = mj_data.qpos[:6]
     mujoco.mj_step(mj_model, mj_data)
@@ -135,32 +141,53 @@ if __name__ == "__main__":
                             mj_data.xpos[mj_model.body('camera').id])
     table_depth = 0.2
 
-    # ===== find camera =====
-    # _time_stamp = time.time()
-    img = camera_node.get_img(with_info_overlay=False)  # undistort=True
-    camera_to_tag, img = get_camera_to_tag(img, id=0)
-    if camera_to_tag is not None:
-        geom_id = mj_model.geom('ee_tag_geom').id
-        base_to_tag = Transform(Rotation.from_matrix(mj_data.geom_xmat[geom_id].reshape(3,3)), mj_data.geom_xpos[geom_id])
-        camera_pose = base_to_tag * camera_to_tag.inverse()
-        mj_data.qpos[6:9] = camera_pose.translation
-        mj_data.qpos[9:] = camera_pose.rotation.as_quat(scalar_first=True)
-        mujoco.mj_step(mj_model, mj_data)
-        viewer.sync()
+    # # ===== find camera =====
+    # # _time_stamp = time.time()
+    # img = camera_node.get_img(with_info_overlay=False)  # undistort=True
+    # camera_to_tag, img = get_camera_to_tag(img, id=0)
+    # if camera_to_tag is not None:
+    #     geom_id = mj_model.geom('ee_tag_geom').id
+    #     base_to_tag = Transform(Rotation.from_matrix(mj_data.geom_xmat[geom_id].reshape(3,3)), mj_data.geom_xpos[geom_id])
+    #     camera_pose = base_to_tag * camera_to_tag.inverse()
+    #     mj_data.qpos[6:9] = camera_pose.translation
+    #     mj_data.qpos[9:] = camera_pose.rotation.as_quat(scalar_first=True)
+    #     mujoco.mj_step(mj_model, mj_data)
+    #     viewer.sync()
 
-        board.log_axes(base_to_tag, name='ee_tag', label='ee_tag')
-        board.log_axes(camera_pose, name='camera', label='camera')
+    # board.log_axes(base_to_tag, name='ee_tag', label='ee_tag')
+    # print(f"camera_pose: {camera_pose.to_string()}")
+    # camera_pose: translation [-0.3171407  -0.27069655  0.3826199 ], rotation (euler xyz degree) [-179.46622477   -2.72143958   -1.95923063]
+    # ↓ fixed, for debug
+    camera_pose = Transform(
+        Rotation.from_euler("xyz", [-179.46622477, -2.72143958, -1.95923063], degrees=True),
+        [-0.3171407, -0.27069655, 0.3826199]
+    )
+    board.log_axes(camera_pose, name='camera', label='camera')
     input("finished find camera")
 
-    # ===== find table depth & line=====
-    camera_to_tag, img = get_camera_to_tag(img, id=1)
-    if camera_to_tag is not None:
-        table_depth = camera_to_tag.translation[2]
-        board.log_axes(base_to_tag, name='tag', label='tag')
-
-    camera_to_line, img = get_camera_to_line(img)
-    if camera_to_line is not None:
-        pass
-        # board.log_axes(camera_to_line, name='line', label='line')
+    # # ===== find table depth & line=====
+    # camera_to_tag, img = get_camera_to_tag(img, id=1)
+    # if camera_to_tag is not None:
+    #     table_depth = camera_to_tag.translation[2]
+    #     board.log_axes(base_to_tag, name='tag', label='tag')
+    # ↓ fixed, for debug
+    table_depth = 0.36830
+    pt3d_list, img = get_camera_to_line(img, table_depth, camera_pose)
     board.log("camera", rr.Image(img, color_model="BGR"))
+
+    final_pts = []
+    for pt in pt3d_list:
+        pt[0] -= 0.02
+        pt[1] += 0
+        pt[2] += 0.2
+        final_pts.append(pt)
+
+    # send to robot
+    for pt in final_pts:
+        joint_angles = cobot_ikpy.ik(
+            pt, target_orientation=[0, 0, -1], initial_position=get_robot_joint_angle()
+        )
+        breakpoint()
+        send_robot_joint_angle(joint_angles)
+
     input("finished find table depth & line")

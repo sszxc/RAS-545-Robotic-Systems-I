@@ -1,15 +1,14 @@
+# FK&IK solver, make the real robot and the simulation robot move the same trajectory
+
 import time
 import numpy as np
-from ikpy import chain
-from ikpy.link import OriginLink, URDFLink
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import mujoco
 import mujoco.viewer
 from mujoco import MjModel, MjData
 from cobot_ikpy_model import Cobot_ikpy
 from collections import deque
-from cobot_communicate import send_tcp_packet
+from cobot_communicate import send_robot_joint_angle
+
 
 def get_square_points(square_vertices=None, num_points_per_edge=20):
     '''define a square path in 3D space
@@ -93,32 +92,32 @@ def get_circle_points(center=[0, -0.15, 0.2], radius=0.08, num_points=100, norma
 if __name__ == "__main__":
     cobot_ikpy = Cobot_ikpy()
 
-    # # # ↓ ====== 单点逆解 ======
-    # target_position = [0.430591, 0.010565, 0.537452]  # 目标位置
-    # # target_position = [0.3, 0.1, 0.3]  # 目标位置
-    # target_orientation = [0, 1, 0]  # 方向向量
+    # # # ↓ ====== single point inverse kinematics ======
+    # target_position = [0.430591, 0.010565, 0.537452]  # target position
+    # # target_position = [0.3, 0.1, 0.3]  # target position
+    # target_orientation = [0, 1, 0]  # direction vector
     # initial_position = [-20, -80, 67, 80, 0, 0]
     # joint_angles = cobot_ikpy.ik(target_position, target_orientation, initial_position=[q/180*np.pi for q in initial_position])
 
-    # # 打印结果
-    # print("计算得到的关节角度（弧度）:")
-    # for i, angle in enumerate(joint_angles[:]):  # 跳过第一个和最后一个固定关节
-    #     print(f"关节{i}: {angle/np.pi*180:.4f}°")
+    # # print the result
+    # print("calculated joint angles (radian):")
+    # for i, angle in enumerate(joint_angles[:]):  # skip the first and last fixed joints
+    #     print(f"joint{i}: {angle/np.pi*180:.4f}°")
 
-    # # 验证正运动学
+    # # verify forward kinematics
     # fk_position = cobot_ikpy.fk(joint_angles)[:3, 3]
-    # print("\n正向运动学验证:")
-    # print(f"目标位置: {np.round(target_position, 4)}")
-    # print(f"计算位置: {np.round(fk_position, 4)}")
+    # print("\nforward kinematics verification:")
+    # print(f"target position: {np.round(target_position, 4)}")
+    # print(f"calculated position: {np.round(fk_position, 4)}")
 
-    # # 可视化机械臂
+    # # visualize the robot
     # fig = plt.figure(figsize=(10, 10))
     # ax = fig.add_subplot(111, projection="3d")
     # cobot_ikpy.chain.plot(joint_angles, ax, target=target_position)
     # plt.show()
     # exit()
 
-    # ↓ ====== 连续轨迹逆解 ======
+    # ↓ ====== continuous trajectory inverse kinematics ======
     mj_model = MjModel.from_xml_path("model/my_cobot.xml")
     mj_data = MjData(mj_model)
     # target_list = get_square_points()
@@ -137,25 +136,16 @@ if __name__ == "__main__":
             for index, target in enumerate(target_list):
                 joint_angles = cobot_ikpy.ik(target, target_orientation=[0, 0, -1], initial_position=last_joint_angles)
                 last_joint_angles = joint_angles
-                # print(f"关节角度: {joint_angles}")
+                # print(f"joint angles: {joint_angles}")
                 fk_position = cobot_ikpy.fk(joint_angles)[:3, 3]
-                # print(f"目标位置: {np.round(target, 4)}")
-                # print(f"计算位置: {np.round(fk_position, 4)}")
+                # print(f"target position: {np.round(target, 4)}")
+                # print(f"calculated position: {np.round(fk_position, 4)}")
 
-                SERVER_IP = "192.168.1.159"
-                SERVER_PORT = 5001
-                joint_angles_shifted = [j/np.pi*180 for j in joint_angles]
-                joint_angles_shifted[1] -= 90
-                joint_angles_shifted[3] -= 90
-                MESSAGE = (
-                    f"set_angles({','.join([str(j) for j in joint_angles_shifted])}, 1000)"
-                )
-                # MESSAGE = f"set_angles(0, -90, 0, -90, 0, 0, 500)"
-                send_tcp_packet(SERVER_IP, SERVER_PORT, MESSAGE)
+                send_robot_joint_angle(joint_angles, speed=1000)
                 time.sleep(0.2)
 
                 mj_data.ctrl[:] = joint_angles
-                for _ in range(50):
+                for _ in range(50):  # wait for the robot to move in simulation
                     mujoco.mj_step(mj_model, mj_data)
                     viewer.sync()
 
@@ -178,8 +168,8 @@ if __name__ == "__main__":
                             pos=[
                                 pos[0],
                                 pos[1],
-                                pos[2] - 0.12,
-                            ],  # position (compensate for the height of the base)
+                                pos[2] - 0.12,    # position (compensate for the height of the base)
+                            ],
                             mat=np.eye(3).flatten(),  # orientation (unit matrix)
                             rgba=np.array(
                                 [0.83, 0.98, 0.98, fade_alpha]
