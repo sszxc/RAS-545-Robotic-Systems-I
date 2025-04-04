@@ -12,7 +12,7 @@ def pixel2D_to_camera3D(pixel_coord, intrinsic, depth, base2camera=np.eye(4)):
     base_3d = base2camera @ camera_3d_homo
     return base_3d[:3]
 
-def detect_line(frame, intrinsic, depth_map=1.0, base2camera=np.eye(4), block_imshow=False):
+def detect_line(frame, intrinsic=None, depth_map=1.0, base2camera=np.eye(4), block_imshow=False):
     if block_imshow:  # disable opencv imshow()
         cv2.imshow = lambda *args, **kwargs: None
         cv2.waitKey = lambda *args, **kwargs: None
@@ -75,22 +75,21 @@ def detect_line(frame, intrinsic, depth_map=1.0, base2camera=np.eye(4), block_im
             for px, py in interpolated_coords:
                 cv2.circle(frame, (px, py), 5, (255, 0, 255), -1)
 
-            # convert to 3D coordinates
-            points_3D = []
-            for (px, py) in interpolated_coords:
-                pt3D = pixel2D_to_camera3D((px, py), intrinsic, depth_map, base2camera)
-                points_3D.append(pt3D)
+            # # convert to 3D coordinates
+            # points_3D = []
+            # for (px, py) in interpolated_coords:
+            #     pt3D = pixel2D_to_camera3D((px, py), intrinsic, depth_map, base2camera)
+            #     points_3D.append(pt3D)
 
             # print the result
             print(f"Start Point: ({x1}, {y1}) End Point: ({x2}, {y2})")
-            print("Interpolated 3D points:")
-            for i, pt in enumerate(points_3D):
-                print(f"Point {i+1}: {pt}")
+            # print("Interpolated 3D points:")
+            # for i, pt in enumerate(points_3D):
+            #     print(f"Point {i+1}: {pt}")
 
-            return frame, interpolated_coords, points_3D
+            return frame, interpolated_coords  #, points_3D
 
-    return frame, None, None
-
+    return frame, None  #, None
 
 def interpolate(x1, y1, x2, y2, num_points=10):
     index = np.linspace(0, 1, num_points)
@@ -112,14 +111,14 @@ if __name__ == "__main__":
     ])
 
     # depth setting
-    depth_value = 0.36830  # meter
+    # depth_value = 0.36830  # meter
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        frame, _, _ = detect_line(frame, intrinsic, depth_value)
+        frame, _ = detect_line(frame)  # , intrinsic, depth_value)
 
         cv2.imshow('Processed Line Detection', frame)
 

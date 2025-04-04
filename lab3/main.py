@@ -13,8 +13,9 @@ from camera_calibration import RGBCamera, April
 from line_detection import detect_line
 from utils.transform_utils import Transform, Rotation
 from utils.rerun_board import RerunBoard
-from cobot_communicate import send_robot_joint_angle, get_robot_joint_angle
+from cobot_communicate import CobotCommunicate
 from cobot_ikpy_model import Cobot_ikpy
+from cal_homography import pixel_to_world_homography
 
 
 def get_camera_to_tag(img, id=0):
@@ -31,25 +32,34 @@ def get_camera_to_tag(img, id=0):
         return None, img
 
 def get_camera_to_line(
-    img, table_depth, camera_pose: Transform
+    img, table_depth = None, camera_pose: Transform = None
 ) -> tuple[list[tuple[int, int]] | None, np.ndarray]:
     intrinsic = np.array([
         [1180.5678174909947, 0.0, 678.0955796013238],
         [0.0, 1180.693516730357, 358.51815164541397],
         [0.0, 0.0, 1.0]
     ])
-    img, interpolated_coords, points_3D = detect_line(
-        img, intrinsic, table_depth, block_imshow=True
-    )
-    points_3D_Fbase_list = []
-    for index, pt3d in enumerate(points_3D):
-        points_3D_Fbase = (camera_pose.as_matrix() @ np.hstack((pt3d, [1])))[:3]
-        board.log(f"world/point_{index}",
-                rr.Points3D(positions=points_3D_Fbase, # colors=finger_config["color"][_ftp_index],
-                            radii=0.003,
-                ))
-        points_3D_Fbase_list.append(points_3D_Fbase)
-    return points_3D_Fbase_list, img
+    img, interpolated_coords = detect_line(img)
+
+    H = np.array([
+        [ 2.10692651e-04,  4.04400481e-06, -5.27370580e-02],
+        [-9.48085900e-06,  2.96163977e-04, -3.31884242e-02],
+        [-9.91626067e-05,  8.25412302e-05,  1.00000000e+00]
+    ])
+
+    points_3D_Fbase = [
+        pixel_to_world_homography((px, py), H) for px, py in interpolated_coords
+    ]
+
+    # points_3D_Fbase_list = []
+    # for index, pt3d in enumerate(points_3D):
+    #     points_3D_Fbase = (camera_pose.as_matrix() @ np.hstack((pt3d, [1])))[:3]
+    #     board.log(f"world/point_{index}",
+    #             rr.Points3D(positions=points_3D_Fbase, # colors=finger_config["color"][_ftp_index],
+    #                         radii=0.003,
+    #             ))
+    #     points_3D_Fbase_list.append(points_3D_Fbase)
+    return points_3D_Fbase, img
 
 def pixel2D_to_camera3D(pixel_coord, intrinsic, depth, base2camera=Transform.identity()):
     # 像素坐标系转到 base 坐标系
@@ -89,6 +99,52 @@ def keyboardCallback(keycode):
 
 
 if __name__ == "__main__":
+    cobot_ikpy = Cobot_ikpy()
+    cobot_communicate = CobotCommunicate()
+
+    # 初始化关节角度
+    print("Move to home position.")
+    HOME_JOINT_ANGLES = [-120, 30, 120, -60, -90, 0]
+    cobot_communicate.send_robot_joint_angle(HOME_JOINT_ANGLES, speed=1000, is_radian=False)
+    input("Press Enter to continue...")
+
+    camera_node = RGBCamera(
+        source=0,
+        intrinsic_path="lab3/calibration_output/intrinsic_03_27_14_42",
+    )
+    while True:
+        print("Try get one img")
+        img = camera_node.get_img(with_info_overlay=False)
+        if img is not None:
+            break
+
+    input("Press Enter to continue...")
+    pt3d_list, img = get_camera_to_line(img)
+
+    current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot_communicate.get_robot_joint_angle()))
+    final_pts = []
+    for pt in pt3d_list:
+        # pt[0] -= 0.02
+        # pt[1] += 0
+        # pt[2] += 0.2
+        pt_xyz = [pt[0], pt[1], 0.1859]
+        final_pts.append(pt_xyz)  # 0.1859 是标定时的距离
+        print(f"pt: {pt_xyz}")
+
+    # send to robot
+    for pt in final_pts:
+        joint_angles = cobot_ikpy.ik(
+            pt, target_orientation=[0, 0, -1], initial_position=cobot_communicate.get_robot_joint_angle()
+        )
+        breakpoint()
+        cobot_communicate.send_robot_joint_angle(joint_angles, speed=500)
+
+    input("finished find table depth & line")
+    HOME_JOINT_ANGLES = [-120, 30, 120, -60, -90, 0]
+    cobot_communicate.send_robot_joint_angle(HOME_JOINT_ANGLES, speed=1000, is_radian=False)
+    exit()
+
+    # previous with mujoco
     mj_model = MjModel.from_xml_path("model/my_cobot.xml")
     mj_data = MjData(mj_model)
     mj_renderer = mujoco.Renderer(mj_model, 640, 640)
