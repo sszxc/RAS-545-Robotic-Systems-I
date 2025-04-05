@@ -1,0 +1,90 @@
+<mujoco model="slider_crank">
+    <!-- 编译和仿真选项 -->
+    <compiler angle="degree" coordinate="local"/>
+
+    <option timestep="0.001" gravity="0 0 -9.81" />
+
+  <asset>
+    <texture name="groundplane" type="2d" builtin="checker" rgb1="0.2 0.3 0.4" rgb2="0.5 0.6 0.7" mark="edge" markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texrepeat="5 5" texuniform="true" reflectance="0.5"/>
+  </asset>
+
+    <!-- 世界坐标系(地面) -->
+    <worldbody>
+        <light name="light_0" pos="0 0 10" dir="0 0 -1"/>
+        <!-- 在世界中放一个可视化地面，可选 -->
+        <geom name="ground_plane" pos="0 0 -0.5" type="plane" size="5 5 0.1"  material="groundplane"/>
+
+        <!-- 第一根连杆 Link1: 以A点为铰，在z轴转动 -->
+        <body name="link1" pos="0 0 0">
+            <!-- 关节：绕z轴的hinge -->
+            <joint name="jointA" type="hinge" axis="0 1 0" limited="false" damping="5"/>
+            <!-- 这段geom仅用于可视化，假设AB长度 l1 = 1.0 -->
+            <geom name="geom_link1" 
+                  type="capsule" 
+                  fromto="0 0 0 0.3 0 0"
+                  size="0.02"         
+                  density="100"
+                  rgba="0.8 0.3 0.3 1"/>
+
+            <!-- 第二根连杆 Link2: 以B点为铰接(仍然绕z轴) -->
+            <!-- 注意：pos="1 0 0" 表示此body相对于 link1 的坐标原点在B点 -->
+            <body name="link2" pos="0.3 0 0">
+                <joint name="jointB" type="hinge" axis="0 1 0" limited="false"/>
+                <!-- 假设BC长度 l2 = 1.0 -->
+                <geom name="geom_link2"
+                      type="capsule"
+                      fromto="0 0 0 0.5 0 0" 
+                      size="0.02"
+                      density="100"
+                      rgba="0.3 0.8 0.3 1"/>
+                
+                <!-- 在 link2 的末端放一个 site，用于和滑块对齐做约束 -->
+                <!-- 末端C点在 link2 局部就是(1,0,0) -->
+                <site name="end_of_link2" pos="0.5 0 0" size="0.01" rgba="1 0 0 1"/>
+            </body>
+        </body>
+
+        <!-- 滑块 C: 只能在 x 轴方向滑动。这里将其直接挂在 worldbody 上 -->
+        <body name="slider" pos="0.8 0 0">
+            <!-- slide 关节，axis="1 0 0" 表示仅沿x轴运动 -->
+            <joint name="jointC_slide" type="slide" axis="1 0 0" limited="false"/>
+            <!-- 可视化用的几何体：假设是一个小长方体 -->
+            <geom name="geom_slider" 
+                  type="box" 
+                  size="0.05 0.05 0.05" 
+                  rgba="0 0.5 0.8 1" 
+                  density="100"/>
+            <!-- 在滑块自身定义一个 site，用来和 link2 的末端做对齐 -->
+            <site name="slider_site" pos="0 0 0" size="0.01" rgba="0 1 0 1"/>
+        </body>
+    </worldbody>
+
+    <!-- equality 约束，用于将 link2 的末端 C 点 和 滑块对齐，从而形成闭环 -->
+    <equality>
+        <!-- 
+            方法1: 使用 connect (distance) 约束，使两个 site 间距离=0，相当于一个球铰(ball joint)，
+                   在2D平面内相当于只剩下一个转动自由度(绕z)。
+            如果你只做平面运动(z 轴转动)，这个就能实现C点对齐并在平面内转动。
+            不过这在3D中相当于允许更多转动。如果一定要只准绕z，可以考虑更复杂的方式，比如多个connect约束组合，或用weld + axisangle之类。
+        -->
+        <connect name="link2_slider_pin" 
+                 site1="end_of_link2" 
+                 site2="slider_site" />
+        
+        <!-- 
+            方法2(可选): 如果想直接“焊死”位置与方向，可以用 weld，但这样就没有C点处的相对转动了。
+            例：
+            <weld body1="link2" body2="slider" 
+                  relpos="(把 link2末端C点 对应的世界坐标)" 
+                  relquat="1 0 0 0" />
+            但通常我们需要在C点处允许连杆转动，所以不使用 weld。
+        -->
+    </equality>
+
+    <!-- 在 A 点设置一个位置控制器(或力矩控制器) -->
+    <actuator>
+        <!-- 位置控制器：kp 表示刚度系数，ctrlRange 表示期望位置的可控范围(弧度) -->
+        <position name="A_pos_act" joint="jointA" kp="20" ctrlrange="-3.14 3.14"/>
+    </actuator>
+</mujoco>
