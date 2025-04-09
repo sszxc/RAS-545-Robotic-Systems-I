@@ -7,7 +7,9 @@ import mujoco.viewer
 from mujoco import MjModel, MjData
 from cobot_ikpy_model import Cobot_ikpy
 from collections import deque
-from cobot_communicate import send_robot_joint_angle
+from cobot_digital_twin import CobotDigitalTwin
+import matplotlib.pyplot as plt
+np.set_printoptions(precision=4, suppress=True)
 
 
 def get_square_points(square_vertices=None, num_points_per_edge=20):
@@ -90,14 +92,16 @@ def get_circle_points(center=[0, -0.15, 0.2], radius=0.08, num_points=100, norma
 
 
 if __name__ == "__main__":
+    cobot = CobotDigitalTwin(real=False, sim=True)
     cobot_ikpy = Cobot_ikpy()
 
-    # # # ↓ ====== single point inverse kinematics ======
+    # # ↓ ====== single point inverse kinematics ======
     # target_position = [0.430591, 0.010565, 0.537452]  # target position
     # # target_position = [0.3, 0.1, 0.3]  # target position
     # target_orientation = [0, 1, 0]  # direction vector
     # initial_position = [-20, -80, 67, 80, 0, 0]
-    # joint_angles = cobot_ikpy.ik(target_position, target_orientation, initial_position=[q/180*np.pi for q in initial_position])
+    # initial_position = [q/180*np.pi for q in initial_position]
+    # joint_angles = cobot_ikpy.ik(target_position, target_orientation, initial_position=initial_position)
 
     # # print the result
     # print("calculated joint angles (radian):")
@@ -118,8 +122,6 @@ if __name__ == "__main__":
     # exit()
 
     # ↓ ====== continuous trajectory inverse kinematics ======
-    mj_model = MjModel.from_xml_path("model/my_cobot.xml")
-    mj_data = MjData(mj_model)
     # target_list = get_square_points()
     target_list = get_circle_points(center=[0.4, 0.1, 0.5], radius=0.1, normal=[0, -1, 1])
     # target_list = get_circle_points(center=[0, 0, 0.6], radius=0.3, normal=[0, 0, 1])
@@ -131,48 +133,43 @@ if __name__ == "__main__":
     trail_opacity = 0.8  # initial opacity of trail
     trail_history = deque(maxlen=trail_length)  # queue for storing history positions
 
-    with mujoco.viewer.launch_passive(mj_model, mj_data) as viewer:
-        while viewer.is_running():
-            for index, target in enumerate(target_list):
-                joint_angles = cobot_ikpy.ik(target, target_orientation=[0, 0, -1], initial_position=last_joint_angles)
-                last_joint_angles = joint_angles
-                # print(f"joint angles: {joint_angles}")
-                fk_position = cobot_ikpy.fk(joint_angles)[:3, 3]
-                # print(f"target position: {np.round(target, 4)}")
-                # print(f"calculated position: {np.round(fk_position, 4)}")
+    while cobot.sim.viewer.is_running():
+        for index, target in enumerate(target_list):
+            joint_angles = cobot_ikpy.ik(target, target_orientation=[0, 0, -1], initial_position=last_joint_angles)
+            last_joint_angles = joint_angles
+            # print(f"joint angles: {joint_angles}")
+            fk_position = cobot_ikpy.fk(joint_angles)[:3, 3]
+            # print(f"target position: {np.round(target, 4)}")
+            # print(f"calculated position: {np.round(fk_position, 4)}")
 
-                send_robot_joint_angle(joint_angles, speed=1000)
-                time.sleep(0.2)
+            cobot.sim.send_joint_angles(joint_angles)
+            cobot.real.send_joint_angles(joint_angles, speed=1000)
+            time.sleep(0.1)
 
-                mj_data.ctrl[:] = joint_angles
-                for _ in range(50):  # wait for the robot to move in simulation
-                    mujoco.mj_step(mj_model, mj_data)
-                    viewer.sync()
+            link6_pos = cobot.sim.mj_data.geom_xpos[cobot.sim.mj_model.geom("link6_geom").id]
+            # trail_history.appendleft(link6_pos)
+            print(f"Tracking error: link6_pos - fk_position = {np.round(link6_pos - fk_position, 4)}")
 
-                link6_pos = mj_data.geom_xpos[mj_model.geom("link6_geom").id]
-                # trail_history.appendleft(link6_pos)
-                print(f"link6_pos - fk_position: {np.round(link6_pos - fk_position, 4)}")
-
-                # ====== draw trail ======
-                trail_history.appendleft(target_list[index])
-                # update geometry in user_scn
-                with viewer.lock():  # ensure thread safety
-                    viewer.user_scn.ngeom = 0  # clear previous geometry
-                    for i, pos in enumerate(trail_history):
-                        # fade alpha with time, simulate trail effect
-                        fade_alpha = trail_opacity * (1 - i / trail_length)
-                        mujoco.mjv_initGeom(
-                            viewer.user_scn.geoms[i],  # index of geometry
-                            type=mujoco.mjtGeom.mjGEOM_SPHERE,  # use sphere to represent trajectory point
-                            size=[0.004, 0, 0],  # sphere size
-                            pos=[
-                                pos[0],
-                                pos[1],
-                                pos[2] - 0.12,    # position (compensate for the height of the base)
-                            ],
-                            mat=np.eye(3).flatten(),  # orientation (unit matrix)
-                            rgba=np.array(
-                                [0.83, 0.98, 0.98, fade_alpha]
-                            ),  # color and transparency
-                        )
-                        viewer.user_scn.ngeom += 1
+            # ====== draw trail ======
+            trail_history.appendleft(target_list[index])
+            # update geometry in user_scn
+            with cobot.sim.viewer.lock():  # ensure thread safety
+                cobot.sim.viewer.user_scn.ngeom = 0  # clear previous geometry
+                for i, pos in enumerate(trail_history):
+                    # fade alpha with time, simulate trail effect
+                    fade_alpha = trail_opacity * (1 - i / trail_length)
+                    mujoco.mjv_initGeom(
+                        cobot.sim.viewer.user_scn.geoms[i],  # index of geometry
+                        type=mujoco.mjtGeom.mjGEOM_SPHERE,  # use sphere to represent trajectory point
+                        size=[0.004, 0, 0],  # sphere size
+                        pos=[
+                            pos[0],
+                            pos[1],
+                            pos[2] - 0.12,    # position (compensate for the height of the base)
+                        ],
+                        mat=np.eye(3).flatten(),  # orientation (unit matrix)
+                        rgba=np.array(
+                            [0.83, 0.98, 0.98, fade_alpha]
+                        ),  # color and transparency
+                    )
+                    cobot.sim.viewer.user_scn.ngeom += 1

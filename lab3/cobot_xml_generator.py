@@ -158,21 +158,21 @@ def build_robot():
     joint6 = link6_body.add("joint", name="joint6", type="hinge", axis=[0, 1, 0], range=[-np.pi, np.pi], damping="5")
     model.actuator.add("position", name="motor6", joint=joint6, gear=[1], ctrlrange=[-np.pi, np.pi], kp="10")
 
-    # 添加末端 tag
-    ee_tag = link5_body.add("body", name="ee_tag", pos=[0, -0.048, 0.05455 - 0.003], quat=[0.707, -0.707, 0, 0])
-    ee_tag.add("geom", name="ee_tag_geom", type="box", size=[0.036/2, 0.036/2, 0.001], material="tag_material",
-               contype=0, conaffinity=0, density="1")
-    ee_tag.add("site").attach(build_coordinate_axes(axis_length=0.05, radius=0.003))
-    # ee_tag.add("geom", name="ee_tag_geom", type="mesh", mesh="tag", material="tag_material",
+    # # 添加末端 tag
+    # ee_tag = link5_body.add("body", name="ee_tag", pos=[0, -0.048, 0.05455 - 0.003], quat=[0.707, -0.707, 0, 0])
+    # ee_tag.add("geom", name="ee_tag_geom", type="box", size=[0.036/2, 0.036/2, 0.001], material="tag_material",
     #            contype=0, conaffinity=0, density="1")
+    # ee_tag.add("site").attach(build_coordinate_axes(axis_length=0.05, radius=0.003))
+    # # ee_tag.add("geom", name="ee_tag_geom", type="mesh", mesh="tag", material="tag_material",
+    # #            contype=0, conaffinity=0, density="1")
 
-    # 添加一个 freejoint camera
-    camera = model.worldbody.add('body', name='camera')
-    # camera.add('geom', type='mesh', size=[0.01], pos=[0, 0, 0], rgba=[1, 1, 0, 1],  # 半径 0.02
-    camera.add("geom", name="camera", type="mesh", mesh="camera", material="metal_gradient_bright_material", pos=[0, 0, 0], quat=[0.5, 0.5, -0.5, 0.5],  # quat=[0, 0.707, 0, -0.707],
-                contype=0, conaffinity=0, density="1")
-    camera.add("site").attach(build_coordinate_axes(axis_length=0.09, radius=0.003))
-    camera.add("freejoint", name="camera_joint")  # 添加自由关节
+    # # 添加一个 freejoint camera
+    # camera = model.worldbody.add('body', name='camera')
+    # # camera.add('geom', type='mesh', size=[0.01], pos=[0, 0, 0], rgba=[1, 1, 0, 1],  # 半径 0.02
+    # camera.add("geom", name="camera", type="mesh", mesh="camera", material="metal_gradient_bright_material", pos=[0, 0, 0], quat=[0.5, 0.5, -0.5, 0.5],  # quat=[0, 0.707, 0, -0.707],
+    #             contype=0, conaffinity=0, density="1")
+    # camera.add("site").attach(build_coordinate_axes(axis_length=0.09, radius=0.003))
+    # camera.add("freejoint", name="camera_joint")  # 添加自由关节
 
     # camera_joint_x = camera.add('joint', name='joint_x', type='slide', axis=[1, 0, 0], damping="5")  # , range=[-1, 1]
     # camera_joint_y = camera.add('joint', name='joint_y', type='slide', axis=[0, 1, 0], damping="5")  # , range=[-1, 1]

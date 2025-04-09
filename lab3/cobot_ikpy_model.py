@@ -1,3 +1,5 @@
+# ikpy model, and keyboard control for sim model visualization
+
 import ikpy
 from ikpy import chain
 from ikpy.link import OriginLink, URDFLink
@@ -17,12 +19,12 @@ class Cobot_ikpy:
         # self.chain = ikpy.chain.Chain.from_urdf_file("lab3/my_cobot.urdf")
         self.chain = chain.Chain(name='mycobot_manual', links=[
             # OriginLink(),
-            URDFLink("base_link", origin_translation=[0, 0, 0],        origin_orientation=[0, 0, np.pi],       rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint1", origin_translation=[0, 0, 0.21934],     origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint2", origin_translation=[0, 0.25, 0],        origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint3", origin_translation=[0, 0.25, 0],        origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint4", origin_translation=[0, 0.1091, 0.108],  origin_orientation=[-np.pi/2, 0, 0],    rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
-            URDFLink("joint5", origin_translation=[0, 0.07586, 0],     origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-np.pi, np.pi)),
+            URDFLink("base_link", origin_translation=[0, 0, 0],        origin_orientation=[0, 0, np.pi],       rotation=[0, 0, 1], bounds=(-2*np.pi, 2*np.pi)),
+            URDFLink("joint1", origin_translation=[0, 0, 0.21934],     origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-2*np.pi, 2*np.pi)),
+            URDFLink("joint2", origin_translation=[0, 0.25, 0],        origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-2*np.pi, 2*np.pi)),
+            URDFLink("joint3", origin_translation=[0, 0.25, 0],        origin_orientation=[0, 0, 0],           rotation=[0, 0, 1], bounds=(-2*np.pi, 2*np.pi)),
+            URDFLink("joint4", origin_translation=[0, 0.1091, 0.108],  origin_orientation=[-np.pi/2, 0, 0],    rotation=[0, 0, 1], bounds=(-2*np.pi, 2*np.pi)),
+            URDFLink("joint5", origin_translation=[0, 0.07586, 0],     origin_orientation=[np.pi/2, 0, 0],     rotation=[0, 0, 1], bounds=(-2*np.pi, 2*np.pi)),
         ])
 
     def ik(self, target_position, target_orientation=None, initial_position=None):
@@ -36,7 +38,7 @@ class Cobot_ikpy:
         )
         return joint_angles
 
-    def fk(self, joint_angles):
+    def fk(self, joint_angles) -> np.ndarray:
         return self.chain.forward_kinematics(joint_angles)
 
 
