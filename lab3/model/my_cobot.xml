@@ -6,6 +6,7 @@
   </visual>
   <default>
     <default class="/"/>
+    <default class="coordinate_axes/"/>
   </default>
   <asset>
     <texture name="groundplane" type="2d" builtin="checker" rgb1="0.20000000000000001 0.29999999999999999 0.40000000000000002" rgb2="0.5 0.59999999999999998 0.69999999999999996" mark="edge" markrgb="0.80000000000000004 0.80000000000000004 0.80000000000000004" width="300" height="300"/>
@@ -25,6 +26,9 @@
     <mesh name="link6" class="/" file="link6.stl" scale="0.001 0.001 0.001"/>
     <mesh name="camera" class="/" file="camera.stl" scale="0.0040000000000000001 0.0040000000000000001 0.0040000000000000001"/>
     <mesh name="tag" class="/" file="tag_d36.stl" scale="0.001 0.001 0.001"/>
+    <material name="coordinate_axes/red" class="coordinate_axes/" rgba="1 0 0 1"/>
+    <material name="coordinate_axes/green" class="coordinate_axes/" rgba="0 1 0 1"/>
+    <material name="coordinate_axes/blue" class="coordinate_axes/" rgba="0 0 1 1"/>
   </asset>
   <worldbody>
     <geom name="ground" class="/" type="plane" size="5 5 1" material="groundplane"/>
@@ -32,6 +36,14 @@
     <camera name="demo-cam" class="/" pos="-0.10000000000000001 -1 0.69999999999999996" xyaxes="0.96599999999999997 -0.25900000000000001 0 -0.10199999999999999 0.38 0.91900000000000004"/>
     <body name="base" axisangle="1 0 0 0">
       <geom name="link0_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0 0 0" mesh="link0"/>
+      <site name="//unnamed_site_0" class="/" pos="0 0 0"/>
+      <body pos="0 0 0" name="coordinate_axes/">
+        <body name="coordinate_axes/axes">
+          <geom name="coordinate_axes//unnamed_geom_0" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes/red" fromto="0 0 0 0.10000000000000001 0 0"/>
+          <geom name="coordinate_axes//unnamed_geom_1" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes/green" fromto="0 0 0 0 0.10000000000000001 0"/>
+          <geom name="coordinate_axes//unnamed_geom_2" class="coordinate_axes/" type="capsule" contype="0" conaffinity="0" size="0.0050000000000000001" material="coordinate_axes/blue" fromto="0 0 0 0 0 0.10000000000000001"/>
+        </body>
+      </body>
       <body name="link1" pos="0 0 0.10967">
         <geom name="link1_geom" class="/" type="mesh" material="metal_gradient_bright_material" pos="0 0 -0.10967" mesh="link1"/>
         <joint name="joint1" class="/" type="hinge" axis="0 0 1" range="-3.1415926535897931 3.1415926535897931" damping="5"/>

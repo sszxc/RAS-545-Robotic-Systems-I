@@ -114,7 +114,7 @@ def build_robot():
     worldbody = model.worldbody
     base_body = worldbody.add("body", name="base", axisangle=[1, 0, 0, 0])
     base_body.add("geom", name="link0_geom", type="mesh", mesh="link0", material="metal_gradient_dark_material", pos=[0.0, 0, 0])
-    # base_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
+    base_body.add("site", pos=[0, 0, 0]).attach(build_coordinate_axes())
 
     # 添加连杆 1
     link1_body = base_body.add("body", name="link1", pos=[0, 0, 0.10967])

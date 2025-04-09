@@ -42,7 +42,8 @@ def get_camera_to_line(
 def plot_plane_in_mujoco(H_pixel2world: np.ndarray,
                          height: float,
                          viewer: mujoco.viewer.Handle,
-                         pixel_range: tuple[int, int] = (1680, 1050)):
+                         pixel_range: tuple[int, int] = (1920, 1080),
+                         pixel_pts_white: list[tuple[int, int]] | None = None):
     # 计算平面在mujoco中的位置和方向
     corner_points = np.array([
         [0, 0],
@@ -67,13 +68,29 @@ def plot_plane_in_mujoco(H_pixel2world: np.ndarray,
         mujoco.mjv_initGeom(
             viewer.user_scn.geoms[0],  # 几何体索引
             type=mujoco.mjtGeom.mjGEOM_PLANE,  # 平面类型
-            size=[width / 2, length / 2, 0.01],  # 平面的尺寸 [半宽度, 半长度, spacing]
+            size=[width / 2, length / 2, 0],  # 平面的尺寸 [半宽度, 半长度, spacing]
             pos=[center_point[0], center_point[1], height],  # 平面的位置
             mat=np.eye(3).flatten(),  # 方向（单位矩阵）
-            rgba=[0.9, 0.9, 0.9, 1],  # 颜色 (浅灰色)
+            rgba=[0.1, 0.9, 0.9, 1],  # 颜色 (浅灰色)
         )
         viewer.user_scn.ngeom += 1
         viewer.sync()
+
+    if pixel_pts_white is not None:
+        pts_3D = [pixel_to_world_homography((px, py), H_pixel2world) for px, py in pixel_pts_white]
+        pts_3D = [[pt[0], pt[1], height] for pt in pts_3D]
+        with viewer.lock():  # 确保线程安全
+            for i, pt in enumerate(pts_3D):
+                mujoco.mjv_initGeom(
+                    viewer.user_scn.geoms[i+1],  # 几何体索引
+                    type=mujoco.mjtGeom.mjGEOM_SPHERE,  # 平面类型
+                    size=[0.01, 0.01, 0.01],  # 平面的尺寸 [半宽度, 半长度, spacing]
+                    pos=[pt[0], pt[1], height],  # 平面的位置
+                    mat=np.eye(3).flatten(),  # 方向（单位矩阵）
+                    rgba=[0.9, 0.9, 0.9, 1],  # 颜色 (浅灰色)
+                )
+                viewer.user_scn.ngeom += 1
+            viewer.sync()
 
 
 if __name__ == "__main__":
@@ -88,18 +105,23 @@ if __name__ == "__main__":
 
     # 在 mujoco 里检查下 H_matrix
     H_pixel2world = np.array(
-        [
-            [2.10692651e-04, 4.04400481e-06, -5.27370580e-02],
-            [-9.48085900e-06, 2.96163977e-04, -3.31884242e-02],
-            [-9.91626067e-05, 8.25412302e-05, 1.00000000e00],
-        ]
+        [[  0.00020021,   0.00000784, -0.50370673],
+         [   0.0000089,  -0.00018147, -0.17313444],
+         [ -0.00001703,  -0.00000959,  1.        ]]
     )
-    work_space_height = 0.1859
-    plot_plane_in_mujoco(H_pixel2world, work_space_height, cobot.sim.viewer)
+    work_space_height = 0.1859 - 0.1
+    pixel_points = [
+        (1340, 897),
+        (590, 884),
+        (1361, 158),
+        (606, 135)
+    ]
+    plot_plane_in_mujoco(H_pixel2world, work_space_height, cobot.sim.viewer, pixel_pts_white=pixel_points)
+    breakpoint()
 
     camera_node = RGBCamera(
         source=0,
-        intrinsic_path="lab3/calibration_output/intrinsic_03_27_14_42",
+        # intrinsic_path="lab3/calibration_output/intrinsic_03_27_14_42",
     )
     while True:
         print("Try get one img...")
