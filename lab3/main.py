@@ -12,8 +12,9 @@ from dm_control import mjcf
 from camera_calibration import RGBCamera, April
 from utils.transform_utils import Transform, Rotation
 from utils.rerun_board import RerunBoard
-from cobot_digital_twin import CobotDigitalTwin
+from cobot_digital_twin import CobotDigitalTwin, CobotSim
 from cobot_ikpy_model import Cobot_ikpy
+from utils.misc_utils import DummyClass
 from line_detection import detect_line
 from cal_homography import pixel_to_world_homography
 
@@ -21,7 +22,7 @@ from cal_homography import pixel_to_world_homography
 def get_camera_to_line(
     img, H_pixel2world: np.ndarray
 ) -> tuple[list[tuple[int, int]] | None, np.ndarray]:
-    img, interpolated_coords = detect_line(img)
+    img, interpolated_coords = detect_line(img, block_imshow=True)
 
     points_3D_Fbase = [
         pixel_to_world_homography((px, py), H_pixel2world)
@@ -44,6 +45,8 @@ def plot_plane_in_mujoco(H_pixel2world: np.ndarray,
                          viewer: mujoco.viewer.Handle,
                          pixel_range: tuple[int, int] = (1920, 1080),
                          pixel_pts_white: list[tuple[int, int]] | None = None):
+    """根据 H 矩阵，把像素空间和工作空间可视化在 MuJoCo 中
+    """
     # 计算平面在mujoco中的位置和方向
     corner_points = np.array([
         [0, 0],
@@ -63,39 +66,60 @@ def plot_plane_in_mujoco(H_pixel2world: np.ndarray,
     # 在mujoco viewer中绘制一个平面
     with viewer.lock():  # 确保线程安全
         viewer.user_scn.ngeom = 0  # 清除之前的几何体
-        
-        # 初始化一个平面几何体
         mujoco.mjv_initGeom(
             viewer.user_scn.geoms[0],  # 几何体索引
             type=mujoco.mjtGeom.mjGEOM_PLANE,  # 平面类型
             size=[width / 2, length / 2, 0],  # 平面的尺寸 [半宽度, 半长度, spacing]
             pos=[center_point[0], center_point[1], height],  # 平面的位置
             mat=np.eye(3).flatten(),  # 方向（单位矩阵）
-            rgba=[0.1, 0.9, 0.9, 1],  # 颜色 (浅灰色)
+            rgba=[0.5, 0.9, 0.9, 1],  # 颜色
         )
         viewer.user_scn.ngeom += 1
         viewer.sync()
 
+    # 绘制工作空间的四个角
     if pixel_pts_white is not None:
         pts_3D = [pixel_to_world_homography((px, py), H_pixel2world) for px, py in pixel_pts_white]
         pts_3D = [[pt[0], pt[1], height] for pt in pts_3D]
         with viewer.lock():  # 确保线程安全
-            for i, pt in enumerate(pts_3D):
+            for pt in pts_3D:
                 mujoco.mjv_initGeom(
-                    viewer.user_scn.geoms[i+1],  # 几何体索引
-                    type=mujoco.mjtGeom.mjGEOM_SPHERE,  # 平面类型
-                    size=[0.01, 0.01, 0.01],  # 平面的尺寸 [半宽度, 半长度, spacing]
-                    pos=[pt[0], pt[1], height],  # 平面的位置
+                    viewer.user_scn.geoms[viewer.user_scn.ngeom],  # 几何体索引
+                    type=mujoco.mjtGeom.mjGEOM_SPHERE,  # 球体
+                    size=[0.01, 0.01, 0.01],  # 尺寸
+                    pos=[pt[0], pt[1], height],  # 位置
                     mat=np.eye(3).flatten(),  # 方向（单位矩阵）
-                    rgba=[0.9, 0.9, 0.9, 1],  # 颜色 (浅灰色)
+                    rgba=[0.9, 0.9, 0.9, 1],  # 颜色
                 )
                 viewer.user_scn.ngeom += 1
             viewer.sync()
 
 
+def log_robot_in_rerun(board: RerunBoard, cobot_sim: CobotSim | None = None):
+    if cobot_sim is None:
+        return
+    mj_model = cobot_sim.mj_model
+    mj_data = cobot_sim.mj_data
+    mj_renderer = mujoco.Renderer(mj_model, 640, 640)
+    for name in ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']:
+        board.log(f'joint_angle/{name}', rr.Scalar(mj_data.qpos[mj_model.joint(name).id]))
+    for name in ['base', 'link1', 'link2', 'link3', 'link4', 'link5', 'link6']:
+        # TODO geometry 的旋转角很有问题, 直接打 body 没问题
+        # geom_id = mj_model.geom(name).id
+        # link_pose = Transform(Rotation.from_matrix(mj_data.geom_xmat[geom_id].reshape(3,3)), mj_data.geom_xpos[geom_id])
+        body_id = mj_model.body(name).id
+        link_pose = Transform(Rotation.from_matrix(mj_data.xmat[body_id].reshape(3,3)), mj_data.xpos[body_id])
+        board.log_axes(link_pose, name=name, axis_size=0.05, label=name)
+
+    mj_renderer.update_scene(mj_data, camera="demo-cam")
+    board.log("mujoco", rr.Image(mj_renderer.render(), color_model="RGB"))
+
+
 if __name__ == "__main__":
     cobot = CobotDigitalTwin(real=False, sim=True)
     cobot_ikpy = Cobot_ikpy()
+    # board = RerunBoard(f"Lab_{time.strftime('%m_%d_%H_%M', time.localtime())}", template="3D")
+    board = DummyClass()
 
     # 初始化关节角度
     # input("Ready to move to home position?")
@@ -109,7 +133,7 @@ if __name__ == "__main__":
          [   0.0000089,  -0.00018147, -0.17313444],
          [ -0.00001703,  -0.00000959,  1.        ]]
     )
-    work_space_height = 0.1859 - 0.1
+    work_space_height = 0.1859 - 0.18
     pixel_points = [
         (1340, 897),
         (590, 884),
@@ -117,28 +141,29 @@ if __name__ == "__main__":
         (606, 135)
     ]
     plot_plane_in_mujoco(H_pixel2world, work_space_height, cobot.sim.viewer, pixel_pts_white=pixel_points)
-    breakpoint()
 
-    camera_node = RGBCamera(
-        source=0,
-        # intrinsic_path="lab3/calibration_output/intrinsic_03_27_14_42",
-    )
-    while True:
-        print("Try get one img...")
-        img = camera_node.get_img(with_info_overlay=False)
-        if img is not None:
-            print("Camera is ready.")
-            break
-
+    # camera_node = RGBCamera(
+    #     source=0,
+    #     # intrinsic_path="lab3/calibration_output/intrinsic_03_27_14_42",
+    # )
+    # while True:
+    #     print("Try get one img...")
+    #     img = camera_node.get_img(with_info_overlay=False)
+    #     if img is not None:
+    #         print("Camera is ready.")
+    #         break
+    img = cv2.imread("../lab4/example_straight.png")
     pt3d_list, img = get_camera_to_line(img, H_pixel2world)
+    board.log("camera", rr.Image(img, color_model="BGR"))
 
-    current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.real.get_joint_angles()))
+    # current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.real.get_joint_angles()))
+    current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.sim.get_joint_angles()))
     final_pts = []
     for pt in pt3d_list:
         # pt[0] -= 0.02
         # pt[1] += 0
         # pt[2] += 0.2
-        pt_xyz = [pt[0], pt[1], 0.1859]  # 0.1859 是标定时的距离
+        pt_xyz = np.array([pt[0], pt[1], 0.1859])  # 0.1859 是标定时的距离
         final_pts.append(pt_xyz)
         print(f"pt: {pt_xyz}")
 
@@ -146,43 +171,14 @@ if __name__ == "__main__":
     input("Press Enter to start the tracking...")
     for pt in final_pts:
         joint_angles = cobot_ikpy.ik(
-            pt, target_orientation=[0, 0, -1], initial_position=cobot.real.get_joint_angles()
+            pt, target_orientation=[0, 0, -1], initial_position=cobot.sim.get_joint_angles()
         )
-        breakpoint()
-        cobot.real.send_joint_angles(joint_angles, speed=500)
+        cobot.sim.send_joint_angles(joint_angles)
+        log_robot_in_rerun(board, cobot.sim)
+        time.sleep(0.1)
 
     # 回到 home position
     HOME_JOINT_ANGLES = [-120, 30, 120, -60, -90, 0]
-    cobot.real.send_joint_angles(HOME_JOINT_ANGLES, speed=1000, is_radian=False)
+    cobot.sim.send_joint_angles(HOME_JOINT_ANGLES, is_radian=False)
+    input("Finished tracking!")
     exit()
-
-    for name in ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']:
-        board.log(f'joint_angle/{name}', rr.Scalar(mj_data.qpos[mj_model.joint(name).id]))
-    for name in ['base', 'link1', 'link2', 'link3', 'link4', 'link5', 'link6', 'ee_tag']:
-        # TODO geometry 的旋转角很有问题, 直接打 body 没问题
-        # geom_id = mj_model.geom(name).id
-        # link_pose = Transform(Rotation.from_matrix(mj_data.geom_xmat[geom_id].reshape(3,3)), mj_data.geom_xpos[geom_id])
-        body_id = mj_model.body(name).id
-        link_pose = Transform(Rotation.from_matrix(mj_data.xmat[body_id].reshape(3,3)), mj_data.xpos[body_id])
-        board.log_axes(link_pose, name=name, axis_size=0.05, label=name)
-
-    mj_renderer.update_scene(mj_data, camera="demo-cam")
-    board.log("mujoco", rr.Image(mj_renderer.render(), color_model="RGB"))
-    input("finished log robot")
-
-    # # ===== find table depth & line=====
-    # camera_to_tag, img = get_camera_to_tag(img, id=1)
-    # if camera_to_tag is not None:
-    #     table_depth = camera_to_tag.translation[2]
-    #     board.log_axes(base_to_tag, name='tag', label='tag')
-    # ↓ fixed, for debug
-    table_depth = 0.36830
-    pt3d_list, img = get_camera_to_line(img, table_depth, camera_pose)
-    board.log("camera", rr.Image(img, color_model="BGR"))
-
-    final_pts = []
-    for pt in pt3d_list:
-        pt[0] -= 0.02
-        pt[1] += 0
-        pt[2] += 0.2
-        final_pts.append(pt)

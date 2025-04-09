@@ -1,16 +1,17 @@
 import cv2
 import numpy as np
 
+np.set_printoptions(precision=8, suppress=True)
+
 # Store pixel points
 pixel_points = []
-
 
 def get_pixel_points(event, x, y, flags, param):
     """Capture four pixel points when clicked."""
     if event == cv2.EVENT_LBUTTONDOWN and len(pixel_points) < 4:
+        cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
         print(f"Clicked at: ({x}, {y})")
         pixel_points.append((x, y))
-
 
 def compute_homography(pixel_points, world_points):
     """Compute homography matrix from pixel to real-world coordinates."""
@@ -20,7 +21,11 @@ def compute_homography(pixel_points, world_points):
 
     pixel_points = np.array(pixel_points, dtype=np.float32)
     world_points = np.array(world_points, dtype=np.float32)[:, :2]  # Ignore Z for 2D transformation
+    print(f"Start compute homography for:")
+    for i in range(4):
+        print(f"{pixel_points[i]} <--> {world_points[i]}")
     H, _ = cv2.findHomography(pixel_points, world_points)
+    print("Get homography matrix:\n", H)
     return H
 
 
@@ -28,7 +33,7 @@ def pixel_to_world_homography(pixel_coords, H):
     """Convert pixel coordinates to real-world coordinates using homography."""
     pixel_homo = np.array([pixel_coords[0], pixel_coords[1], 1], dtype=np.float32)
     world_homo = H @ pixel_homo
-    world_coords = world_homo[:2] / world_homo[2]  # Normalize
+    world_coords = world_homo[:2] / world_homo[2]  # Normalize 如果是简单仿射变换，最后一个维度应该接近 1；否则表示透视变换（可以理解成相对位置大小作用到 scale 上）
     return world_coords
 
 def detect_line(frame, block_imshow=False):
@@ -88,7 +93,6 @@ def detect_line(frame, block_imshow=False):
 
     return frame, None, None
 
-
 def interpolate(x1, y1, x2, y2, num_points=10):
     """Interpolate points along a line."""
     index = np.linspace(0, 1, num_points)
@@ -99,52 +103,26 @@ def interpolate(x1, y1, x2, y2, num_points=10):
 
 
 if __name__ == "__main__":
-    # # ===== detect lines =====
-    # cap = cv2.VideoCapture(0)
+    # # ===== get frame =====
+    # USE_CAMERA = False
+    # if USE_CAMERA:
+    #     cap = cv2.VideoCapture(0)
+    #     while True:
+    #         ret, frame = cap.read()
+    #         if not ret:
+    #             break
+    #     cap.release()
+    # else:
+    #     frame = cv2.imread("lab3/test.jpg")
 
-    # intrinsic = np.array([
-    #     [1180.5678174909947, 0.0, 678.0955796013238],
-    #     [0.0, 1180.693516730357, 358.51815164541397],
-    #     [0.0, 0.0, 1.0]
-    # ])
-
-    # depth_value = 0.36830
-
+    # # ===== pick 4 points =====
     # while True:
-    #     ret, frame = cap.read()
-    #     if not ret:
-    #         break
-
-    #     frame, _, _ = detect_line(frame, intrinsic, depth_value)
-
-    #     cv2.imshow('Processed Line Detection', frame)
-
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):
-    #         break
-
-    # cap.release()
-    # cv2.destroyAllWindows()
-
-    # # ===== cal homography =====
-    # # Open camera to select four corner points
-    # cap = cv2.VideoCapture(0)
-    # while True:
-    #     ret, frame = cap.read()
-    #     if not ret:
-    #         break
-
     #     cv2.imshow("Select Corners", frame)
     #     cv2.setMouseCallback("Select Corners", get_pixel_points)
-
     #     if cv2.waitKey(1) & 0xFF == ord("q") or len(pixel_points) == 4:
     #         break
-
-    # cap.release()
     # cv2.destroyAllWindows()
 
-    # print("Selected Pixel Points:", pixel_points)
-
-    # Manually enter corresponding real-world coordinates (X, Y, Z)
     pixel_points = [
         (1340, 897),
         (590, 884),
@@ -152,6 +130,7 @@ if __name__ == "__main__":
         (606, 135)
     ]
 
+    # Manually enter corresponding real-world coordinates (X, Y, Z)
     world_points = [
         [-0.2358, -0.3345, 0.1859],  # Top-left
         [-0.3858, -0.3345, 0.1859],  # Top-right
@@ -159,13 +138,10 @@ if __name__ == "__main__":
         [-0.3858, -0.1945, 0.1859],  # Bottom-right
     ]
 
-    # Compute Homography
+    # ===== compute homography =====
     H = compute_homography(pixel_points, world_points)
-    # H = np.array(
-    # )
-    print("Homography Matrix:\n", H)
 
-    # Test the homography
+    # ===== test homography =====
     test_pixel_points = [
         (1340, 897),
         (1350, 500),
@@ -173,6 +149,5 @@ if __name__ == "__main__":
     ]
 
     for px, py in test_pixel_points:
-        print(f"pixel: ({px}, {py})")
         world_coords = pixel_to_world_homography((px, py), H)
-        print(f"world: {world_coords}")
+        print(f"pixel: ({px}, {py}) <--> world: {world_coords}")

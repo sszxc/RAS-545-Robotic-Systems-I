@@ -75,7 +75,7 @@ def build_robot():
     model.worldbody.add('geom', name='ground', type='plane', size=[5, 5, 1], material="groundplane")
     model.worldbody.add('light', pos=[0, 0, 10], dir=[0, 0, -1])
 
-    model.worldbody.add('camera', name='demo-cam', pos="-0.1 -1.0 0.7", xyaxes="0.966 -0.259 0.000 -0.102 0.380 0.919")
+    model.worldbody.add('camera', name='demo-cam', pos="-0.4 -1.0 0.5", xyaxes="0.966 -0.259 0.000 -0.102 0.380 0.919")
     # 配置全局相机视角和离线渲染尺寸
     model.visual.__getattr__("global").azimuth = 70  # 方位角
     model.visual.__getattr__("global").elevation = -30  # 仰角

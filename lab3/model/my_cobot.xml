@@ -33,7 +33,7 @@
   <worldbody>
     <geom name="ground" class="/" type="plane" size="5 5 1" material="groundplane"/>
     <light name="//unnamed_light_0" class="/" pos="0 0 10" dir="0 0 -1"/>
-    <camera name="demo-cam" class="/" pos="-0.10000000000000001 -1 0.69999999999999996" xyaxes="0.96599999999999997 -0.25900000000000001 0 -0.10199999999999999 0.38 0.91900000000000004"/>
+    <camera name="demo-cam" class="/" pos="-0.40000000000000002 -1 0.5" xyaxes="0.96599999999999997 -0.25900000000000001 0 -0.10199999999999999 0.38 0.91900000000000004"/>
     <body name="base" axisangle="1 0 0 0">
       <geom name="link0_geom" class="/" type="mesh" material="metal_gradient_dark_material" pos="0 0 0" mesh="link0"/>
       <site name="//unnamed_site_0" class="/" pos="0 0 0"/>

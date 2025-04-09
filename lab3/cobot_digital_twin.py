@@ -42,7 +42,7 @@ class CobotSim:
         # self.viewer.cam.lookat = [0, 0, 0]
 
     def get_joint_angles(self, is_radian: bool = True) -> list[float]:
-        return self.mj_data.qpos if not is_radian else [a / np.pi * 180 for a in self.mj_data.qpos]
+        return self.mj_data.qpos if is_radian else [a / np.pi * 180 for a in self.mj_data.qpos]
 
     def send_joint_angles(self, joint_angles, is_radian=True):
         if is_radian:
