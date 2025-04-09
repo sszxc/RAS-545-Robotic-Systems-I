@@ -33,6 +33,14 @@ class CobotSim:
         self.mj_data = MjData(self.mj_model)
         self.viewer = mujoco.viewer.launch_passive(self.mj_model, self.mj_data)
 
+        # viewer = mujoco.viewer.launch_passive(
+        #     mj_model, mj_data, key_callback=keyboardCallback
+        # )
+        # self.viewer.cam.azimuth = 70
+        # self.viewer.cam.elevation = -30
+        # self.viewer.cam.distance = 1.6
+        # self.viewer.cam.lookat = [0, 0, 0]
+
     def get_joint_angles(self, is_radian: bool = True) -> list[float]:
         return self.mj_data.qpos if not is_radian else [a / np.pi * 180 for a in self.mj_data.qpos]
 
