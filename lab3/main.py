@@ -24,7 +24,11 @@ def get_line_3D(
     H_pixel2world: np.ndarray,
     is_curve: bool = False,
 ) -> tuple[list[tuple[int, int]] | None, np.ndarray]:
-    img, interpolated_coords = detect_line(img, is_curve=is_curve, block_imshow=True)
+    try:
+        img, interpolated_coords = detect_line(img, is_curve=is_curve, block_imshow=True)
+    except Exception as e:
+        print(f"Error: {e}")
+        return [], img
 
     points_3D_Fbase = [
         pixel_to_world_homography((px, py), H_pixel2world)
@@ -123,10 +127,17 @@ def log_robot_in_rerun(board: RerunBoard, cobot_sim: CobotSim | None = None):
 
 
 if __name__ == "__main__":
-    cobot = CobotDigitalTwin(real=False, sim=True)
+    cobot = CobotDigitalTwin(real=True, sim=True)
     cobot_ikpy = Cobot_ikpy()
-    board = RerunBoard(f"Lab_{time.strftime('%m_%d_%H_%M', time.localtime())}", template="3D")
-    # board = DummyClass()
+    # board = RerunBoard(f"Lab_{time.strftime('%m_%d_%H_%M', time.localtime())}", template="3D")
+    board = DummyClass()
+
+    if cobot.real is not None:
+        # 初始化关节角度
+        print("Move to home position.")
+        HOME_JOINT_ANGLES = [-120, 30, 120, -60, -90, 0]
+        cobot.real.send_joint_angles(HOME_JOINT_ANGLES, speed=1000, is_radian=False)
+        input("Press Enter to continue...")
 
     # 初始化关节角度
     # input("Ready to move to home position?")
@@ -136,61 +147,71 @@ if __name__ == "__main__":
 
     # 在 mujoco 里检查下 H_matrix
     H_pixel2world = np.array(
-        [[  0.00020021,   0.00000784, -0.50370673],
-         [   0.0000089,  -0.00018147, -0.17313444],
-         [ -0.00001703,  -0.00000959,  1.        ]]
+        [[ 0.00018732,   0.00000716, -0.4880172 ],
+         [ 0.0000061  , -0.00020846, -0.15732019],
+         [-0.00001028 , -0.00000929 , 1.        ]]
     )
     workspace_height = 0.1859
     table_height = workspace_height - 0.18
     pixel_points = [
-        (1340, 897),
-        (590, 884),
-        (1361, 158),
-        (606, 135)
+        (1342, 901),
+        (596, 892),
+        (611, 142),
+        (1362, 157),
     ]
-    plot_plane_in_mujoco(
-        H_pixel2world, table_height, cobot.sim.viewer, pixel_pts_white=pixel_points
+    camera_node = RGBCamera(
+        source=0,
+        # intrinsic_path="lab3/calibration_output/intrinsic_03_27_14_42",
     )
 
-    # camera_node = RGBCamera(
-    #     source=0,
-    #     # intrinsic_path="lab3/calibration_output/intrinsic_03_27_14_42",
-    # )
-    # while True:
-    #     print("Try get one img...")
-    #     img = camera_node.get_img(with_info_overlay=False)
-    #     if img is not None:
-    #         print("Camera is ready.")
-    #         break
-    # img = cv2.imread("../lab4/example_straight.png")
-    img = cv2.imread("../lab4/example_curve.png")
-    pt3d_list, img = get_line_3D(img, H_pixel2world, is_curve=True)
-    board.log("camera", rr.Image(img, color_model="BGR"))
+    for i in range(1):
+        plot_plane_in_mujoco(
+            H_pixel2world, table_height, cobot.sim.viewer, pixel_pts_white=pixel_points
+        )
 
-    # current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.real.get_joint_angles()))
-    current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.sim.get_joint_angles()))
-    final_pts = []
-    final_pts_mujoco = []
-    for pt in pt3d_list:
-        # pt[0] -= 0.02
-        # pt[1] += 0
-        # pt[2] += 0.2
-        final_pts.append(np.array([pt[0], pt[1], workspace_height]))  # 标定时的距离
-        final_pts_mujoco.append(np.array([pt[0], pt[1], table_height]))
-    plot_pts_in_mujoco(final_pts_mujoco, cobot.sim.viewer)
+        while True:
+            print("Try get one img...")
+            img = camera_node.get_img(with_info_overlay=False)
+            if img is not None:
+                cv2.imwrite(f"debug/img_{time.strftime('%m_%d_%H_%M', time.localtime())}.jpg", img)
+                print("Camera is ready.")
+                break
+        # img = cv2.imread("../lab4/example_straight.png")
+        # img = cv2.imread("../lab4/example_curve.png")
+        pt3d_list, img = get_line_3D(img, H_pixel2world, is_curve=True)
+        board.log("camera", rr.Image(img, color_model="BGR"))
+        cv2.imwrite(f"debug/img_{time.strftime('%m_%d_%H_%M', time.localtime())}_noted.jpg", img)
+
+        # current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.real.get_joint_angles()))
+        current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.sim.get_joint_angles()))
+        final_pts = []
+        final_pts_mujoco = []
+        for pt in pt3d_list:
+            # pt[0] -= 0.02
+            # pt[1] += 0
+            # pt[2] += 0.2
+            final_pts.append(np.array([pt[0], pt[1], workspace_height]))  # 标定时的距离
+            final_pts_mujoco.append(np.array([pt[0], pt[1], table_height]))
+        plot_pts_in_mujoco(final_pts_mujoco, cobot.sim.viewer)
+        time.sleep(0.1)
 
     # send to robot
     input("Press Enter to start the tracking...")
-    for pt in final_pts:
+    for index, pt in enumerate(final_pts):
         joint_angles = cobot_ikpy.ik(
             pt, target_orientation=[0, 0, -1], initial_position=cobot.sim.get_joint_angles()
         )
         cobot.sim.send_joint_angles(joint_angles)
+        # input("Press Enter to send to real robot...")
+        cobot.real.send_joint_angles(joint_angles, speed=1000)
+        if index == 0:
+            time.sleep(2)
         log_robot_in_rerun(board, cobot.sim)
-        time.sleep(0.1)
+        time.sleep(0.2)
 
     # 回到 home position
     HOME_JOINT_ANGLES = [-120, 30, 120, -60, -90, 0]
     cobot.sim.send_joint_angles(HOME_JOINT_ANGLES, is_radian=False)
+    cobot.real.send_joint_angles(HOME_JOINT_ANGLES, is_radian=False)
     input("Finished tracking!")
     exit()

@@ -9,7 +9,7 @@ pixel_points = []
 def get_pixel_points(event, x, y, flags, param):
     """Capture four pixel points when clicked."""
     if event == cv2.EVENT_LBUTTONDOWN and len(pixel_points) < 4:
-        cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
+        cv2.circle(frame, (x, y), 10, (0, 255, 0), -1)
         print(f"Clicked at: ({x}, {y})")
         pixel_points.append((x, y))
 
@@ -104,16 +104,18 @@ def interpolate(x1, y1, x2, y2, num_points=10):
 
 if __name__ == "__main__":
     # # ===== get frame =====
-    # USE_CAMERA = False
+    # USE_CAMERA = True
     # if USE_CAMERA:
     #     cap = cv2.VideoCapture(0)
+    #     for _ in range(10):
+    #         ret, frame = cap.read()
     #     while True:
     #         ret, frame = cap.read()
-    #         if not ret:
+    #         if ret:
     #             break
     #     cap.release()
     # else:
-    #     frame = cv2.imread("lab3/test.jpg")
+    #     frame = cv2.imread("lab4/example_straight.png")
 
     # # ===== pick 4 points =====
     # while True:
@@ -122,20 +124,22 @@ if __name__ == "__main__":
     #     if cv2.waitKey(1) & 0xFF == ord("q") or len(pixel_points) == 4:
     #         break
     # cv2.destroyAllWindows()
+    # print(f"pixel_points: {pixel_points}")
+    # exit()
 
     pixel_points = [
-        (1340, 897),
-        (590, 884),
-        (1361, 158),
-        (606, 135)
+        (1342, 901),
+        (596, 892),
+        (611, 142),
+        (1362, 157),
     ]
 
     # Manually enter corresponding real-world coordinates (X, Y, Z)
     world_points = [
-        [-0.2358, -0.3345, 0.1859],  # Top-left
-        [-0.3858, -0.3345, 0.1859],  # Top-right
-        [-0.2358, -0.1945, 0.1859],  # Bottom-left
-        [-0.3858, -0.1945, 0.1859],  # Bottom-right
+        [-0.2354, -0.3446,  0.1761],  # Top-left
+        [-0.3754, -0.3446,  0.1761],  # Top-right
+        [-0.3754, -0.1846,  0.1761],  # Bottom-left
+        [-0.2354, -0.1846,  0.1761],  # Bottom-right
     ]
 
     # ===== compute homography =====
@@ -143,11 +147,37 @@ if __name__ == "__main__":
 
     # ===== test homography =====
     test_pixel_points = [
-        (1340, 897),
-        (1350, 500),
-        (1361, 158),
+        (0, 0),
+        (1920, 1080),
+        (1342, 901),
+        (596, 892),
+        (611, 142),
+        (1362, 157),
     ]
 
     for px, py in test_pixel_points:
         world_coords = pixel_to_world_homography((px, py), H)
         print(f"pixel: ({px}, {py}) <--> world: {world_coords}")
+
+    # ===== test homography on real robot =====
+    from cobot_digital_twin import CobotDigitalTwin
+    from cobot_ikpy_model import Cobot_ikpy
+
+    cobot_ikpy = Cobot_ikpy()
+    cobot = CobotDigitalTwin(real=True, sim=False)
+    final_pts = [
+        pixel_to_world_homography((px, py), H)
+        for px, py in test_pixel_points
+    ]
+    final_3D_pts = []
+    for pt in final_pts:
+        final_3D_pts.append(np.array([pt[0], pt[1], 0.1761]))
+
+    for pt in final_3D_pts:
+        joint_angles = cobot_ikpy.ik(
+            pt,
+            target_orientation=[0, 0, -1],
+            initial_position=cobot.real.get_joint_angles(),
+        )
+        # input("Press Enter to send to real robot...")
+        cobot.real.send_joint_angles(joint_angles)

@@ -159,7 +159,7 @@ def _curve_line_detection(frame, dilated, mask):
     x, y = pts[:, 0], pts[:, 1]
     if len(x) < 4:
         print("Less than 4 points for interpolation. Failed.")
-        return []
+        return frame, None
 
     try:
         # default for 3-order B-spline
@@ -168,7 +168,7 @@ def _curve_line_detection(frame, dilated, mask):
         x_new, y_new = splev(u_new, tck)
     except Exception as e:
         print(f"Curve interpolation failed: {e}")
-        return []
+        return frame, None
 
     interpolated_pts = np.array([[xi, yi] for xi, yi in zip(x_new, y_new)], dtype=np.float32)
     # 可视化 interpolated_pts
@@ -184,16 +184,16 @@ def _curve_line_detection(frame, dilated, mask):
 
 if __name__ == "__main__":
     # Open camera (change index if needed)
-    # cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)
 
     while True:
-        # ret, frame = cap.read()
-        # if not ret:
-        #     break
+        ret, frame = cap.read()
+        if not ret:
+            break
         # frame = cv2.imread("lab4/example_straight.png")
-        # frame, _ = detect_line(frame, is_curve=False)
-        frame = cv2.imread("lab4/example_curve.png")
-        frame, _ = detect_line(frame, is_curve=True)
+        frame, _ = detect_line(frame, is_curve=False)
+        # frame = cv2.imread("lab4/example_curve.png")
+        # frame, _ = detect_line(frame, is_curve=True)
         cv2.imshow('Processed Line Detection', frame)
 
         if cv2.waitKey(0) & 0xFF == ord('q'):

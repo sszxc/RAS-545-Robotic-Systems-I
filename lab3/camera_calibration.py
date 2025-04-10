@@ -166,7 +166,7 @@ class RGBCamera(Camera):
         self,
         source="192.168.111.111",
         intrinsic_path=None,
-        target_resolution=(1280, 720, 30),
+        target_resolution=(1920, 1080, 30),
         visualization_resize=640,
         log: logging.Logger = logging.getLogger(),
         **kwargs,

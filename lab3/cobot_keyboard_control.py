@@ -78,7 +78,7 @@ if __name__ == "__main__":
             target_orientation=[0, 0, -1],
             initial_position=last_joint_angles,
         )
-        cobot.real.send_joint_angles(joint_angles, speed=1000, is_radian=False)
+        cobot.real.send_joint_angles(joint_angles, speed=1000, is_radian=True)
         last_joint_angles = cobot.real.get_joint_angles()
 
     cv2.destroyAllWindows()
