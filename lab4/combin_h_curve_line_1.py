@@ -201,7 +201,7 @@ def detect_curve_logic(frame, H_matrix, num_points, fixed_z):
 
 # ==================== 主程式測試區 ====================
 if __name__ == "__main__":
-    img = cv2.imread("2.png")
+    img = cv2.imread("lab3/example_curve.png")
     if img is None:
         print("❌ 無法讀取圖片，請確認檔案路徑和名稱是否正確。")
         exit()
@@ -216,3 +216,34 @@ if __name__ == "__main__":
     coords_curve = detect_line(img, straight_or_curve=False, H_matrix=H_matrix)
 
     cv2.destroyAllWindows()
+
+
+# ✅ 確認一下輸出
+if coords_line:
+    print_world_coords("直線", coords_line)
+if coords_curve:
+    print_world_coords("曲線", coords_curve)
+
+# ✅ 整理成 final_pts
+final_pts = []
+if coords_line:
+    final_pts.extend(coords_line)
+if coords_curve:
+    final_pts.extend(coords_curve)
+
+# ✅ 印出最後要存的 final_pts 確認一下
+print("✅ 最終存入 final_pts.npy 的內容：")
+for pt in final_pts:
+    print(pt)
+
+# ✅ 轉成公尺（m 單位）
+final_pts_m = np.array(final_pts) * 0.001
+print("✅ 最終存入 final_pts.npy 的內容（m 單位）：")
+for pt in final_pts_m:
+    print(pt)
+
+# ✅ 存成 .npy 檔案，給主程式使用
+np.save("lab3/final_pts.npy", np.array(final_pts))
+np.save("lab3/H_pixel2world.npy", H_matrix)
+print("✅ H matrix 已經成功儲存到 lab3/H_pixel2world.npy")
+print("✅ 路徑點已經成功儲存到 lab3/final_pts.npy")
