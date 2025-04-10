@@ -176,8 +176,8 @@ if __name__ == "__main__":
                 cv2.imwrite(f"debug/img_{time.strftime('%m_%d_%H_%M', time.localtime())}.jpg", img)
                 print("Camera is ready.")
                 break
-        # img = cv2.imread("../lab4/example_straight.png")
-        # img = cv2.imread("../lab4/example_curve.png")
+        # img = cv2.imread("media/example_straight.png")
+        # img = cv2.imread("media/example_curve.png")
         pt3d_list, img = get_line_3D(img, H_pixel2world, is_curve=True)
         board.log("camera", rr.Image(img, color_model="BGR"))
         cv2.imwrite(f"debug/img_{time.strftime('%m_%d_%H_%M', time.localtime())}_noted.jpg", img)
