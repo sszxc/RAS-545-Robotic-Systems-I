@@ -19,24 +19,17 @@ from line_detection import detect_line
 from cal_homography import pixel_to_world_homography
 
 
-def get_camera_to_line(
-    img, H_pixel2world: np.ndarray
+def get_line_3D(
+    img,
+    H_pixel2world: np.ndarray,
+    is_curve: bool = False,
 ) -> tuple[list[tuple[int, int]] | None, np.ndarray]:
-    img, interpolated_coords = detect_line(img, block_imshow=True)
+    img, interpolated_coords = detect_line(img, is_curve=is_curve, block_imshow=True)
 
     points_3D_Fbase = [
         pixel_to_world_homography((px, py), H_pixel2world)
         for px, py in interpolated_coords
     ]
-
-    # points_3D_Fbase_list = []
-    # for index, pt3d in enumerate(points_3D):
-    #     points_3D_Fbase = (camera_pose.as_matrix() @ np.hstack((pt3d, [1])))[:3]
-    #     board.log(f"world/point_{index}",
-    #             rr.Points3D(positions=points_3D_Fbase, # colors=finger_config["color"][_ftp_index],
-    #                         radii=0.003,
-    #             ))
-    #     points_3D_Fbase_list.append(points_3D_Fbase)
     return points_3D_Fbase, img
 
 
@@ -72,7 +65,7 @@ def plot_plane_in_mujoco(H_pixel2world: np.ndarray,
             size=[width / 2, length / 2, 0],  # 平面的尺寸 [半宽度, 半长度, spacing]
             pos=[center_point[0], center_point[1], height],  # 平面的位置
             mat=np.eye(3).flatten(),  # 方向（单位矩阵）
-            rgba=[0.5, 0.9, 0.9, 1],  # 颜色
+            rgba=[0.6, 0.5450, 0.4666, 1],  # 颜色
         )
         viewer.user_scn.ngeom += 1
         viewer.sync()
@@ -94,6 +87,20 @@ def plot_plane_in_mujoco(H_pixel2world: np.ndarray,
                 viewer.user_scn.ngeom += 1
             viewer.sync()
 
+def plot_pts_in_mujoco(pts_3D: list[tuple[float, float, float]],
+                       viewer: mujoco.viewer.Handle):
+    with viewer.lock():
+        for pt in pts_3D:
+            mujoco.mjv_initGeom(
+                viewer.user_scn.geoms[viewer.user_scn.ngeom],  # 几何体索引
+                type=mujoco.mjtGeom.mjGEOM_SPHERE,  # 球体
+                size=[0.005, 0.005, 0.005],  # 尺寸
+                pos=[pt[0], pt[1], pt[2]],  # 位置
+                mat=np.eye(3).flatten(),  # 方向（单位矩阵）
+                rgba=[1.0, 0.6470, 0.3019, 1],  # 颜色
+            )
+            viewer.user_scn.ngeom += 1
+        viewer.sync()
 
 def log_robot_in_rerun(board: RerunBoard, cobot_sim: CobotSim | None = None):
     if cobot_sim is None:
@@ -118,8 +125,8 @@ def log_robot_in_rerun(board: RerunBoard, cobot_sim: CobotSim | None = None):
 if __name__ == "__main__":
     cobot = CobotDigitalTwin(real=False, sim=True)
     cobot_ikpy = Cobot_ikpy()
-    # board = RerunBoard(f"Lab_{time.strftime('%m_%d_%H_%M', time.localtime())}", template="3D")
-    board = DummyClass()
+    board = RerunBoard(f"Lab_{time.strftime('%m_%d_%H_%M', time.localtime())}", template="3D")
+    # board = DummyClass()
 
     # 初始化关节角度
     # input("Ready to move to home position?")
@@ -133,14 +140,17 @@ if __name__ == "__main__":
          [   0.0000089,  -0.00018147, -0.17313444],
          [ -0.00001703,  -0.00000959,  1.        ]]
     )
-    work_space_height = 0.1859 - 0.18
+    workspace_height = 0.1859
+    table_height = workspace_height - 0.18
     pixel_points = [
         (1340, 897),
         (590, 884),
         (1361, 158),
         (606, 135)
     ]
-    plot_plane_in_mujoco(H_pixel2world, work_space_height, cobot.sim.viewer, pixel_pts_white=pixel_points)
+    plot_plane_in_mujoco(
+        H_pixel2world, table_height, cobot.sim.viewer, pixel_pts_white=pixel_points
+    )
 
     # camera_node = RGBCamera(
     #     source=0,
@@ -152,20 +162,22 @@ if __name__ == "__main__":
     #     if img is not None:
     #         print("Camera is ready.")
     #         break
-    img = cv2.imread("../lab4/example_straight.png")
-    pt3d_list, img = get_camera_to_line(img, H_pixel2world)
+    # img = cv2.imread("../lab4/example_straight.png")
+    img = cv2.imread("../lab4/example_curve.png")
+    pt3d_list, img = get_line_3D(img, H_pixel2world, is_curve=True)
     board.log("camera", rr.Image(img, color_model="BGR"))
 
     # current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.real.get_joint_angles()))
     current_pose = Transform.from_matrix(cobot_ikpy.fk(cobot.sim.get_joint_angles()))
     final_pts = []
+    final_pts_mujoco = []
     for pt in pt3d_list:
         # pt[0] -= 0.02
         # pt[1] += 0
         # pt[2] += 0.2
-        pt_xyz = np.array([pt[0], pt[1], 0.1859])  # 0.1859 是标定时的距离
-        final_pts.append(pt_xyz)
-        print(f"pt: {pt_xyz}")
+        final_pts.append(np.array([pt[0], pt[1], workspace_height]))  # 标定时的距离
+        final_pts_mujoco.append(np.array([pt[0], pt[1], table_height]))
+    plot_pts_in_mujoco(final_pts_mujoco, cobot.sim.viewer)
 
     # send to robot
     input("Press Enter to start the tracking...")

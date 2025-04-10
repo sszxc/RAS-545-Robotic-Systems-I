@@ -3,35 +3,6 @@ import numpy as np
 from scipy.interpolate import splprep, splev
 from typing import List, Tuple
 
-# ==================== H Matrix Initialization ====================
-def initialize_H_matrix(frame, workspace_size=(300, 300)) -> np.ndarray:
-    print("👉 請依次點擊四個角落：左上、右上、右下、左下")
-    selected_corners = []
-
-    def mouse_callback(event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDOWN and len(selected_corners) < 4:
-            selected_corners.append([x, y])
-            cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
-            cv2.imshow("選取工作區域四個角落", frame)
-
-    cv2.imshow("選取工作區域四個角落", frame)
-    cv2.setMouseCallback("選取工作區域四個角落", mouse_callback)
-    while len(selected_corners) < 4:
-        cv2.waitKey(1)
-    cv2.destroyAllWindows()
-
-    src_pts = np.array(selected_corners, dtype=np.float32)
-    dst_pts = np.array([
-        [0, 0],
-        [workspace_size[0] - 1, 0],
-        [workspace_size[0] - 1, workspace_size[1] - 1],
-        [0, workspace_size[1] - 1]
-    ], dtype=np.float32)
-
-    H_matrix = cv2.getPerspectiveTransform(src_pts, dst_pts)
-    print("\n✅ H Matrix 初始化完成：")
-    print(H_matrix)
-    return H_matrix
 
 # ==================== Utility Functions ====================
 def interpolate(x1, y1, x2, y2, num_points=10):
@@ -43,15 +14,13 @@ def interpolate(x1, y1, x2, y2, num_points=10):
 
 
 def preprocess_image(frame, H_matrix):
-    # 圖片預處理：透視轉換、灰階化、高斯模糊
     warped = cv2.warpPerspective(frame, H_matrix, (300, 300))
     gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     return warped, blurred
 
 
-def convert_to_world_coords(points, H_matrix, fixed_z, visualize_img=None):
-    # 像素座標轉換成世界座標
+def convert_to_world_coords(points, H_matrix, fixed_z, visualize_img=None, labels=None):
     dst_size = (300, 300)
     dst_pts = np.array([
         [0, 0],
@@ -67,17 +36,27 @@ def convert_to_world_coords(points, H_matrix, fixed_z, visualize_img=None):
     robot_offset_x = -235.8
     robot_offset_y = -194.5
 
-    if visualize_img is not None:
-        for [[x, y]] in points:
-            cv2.circle(visualize_img, (int(x), int(y)), 4, (0, 0, 255), -1)
+    result = []
+    for i, ([[x, y]]) in enumerate(points):
+        if visualize_img is not None:
+            cv2.circle(visualize_img, (int(x), int(y)), 4, (255, 0, 0), -1)
+            if labels:
+                cv2.putText(visualize_img, labels[i], (int(x) + 5, int(y) - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1)
 
-    return [(float(x) + robot_offset_x, float(y) + robot_offset_y, float(fixed_z)) for [[x, y]] in world_coords]
+        wx, wy = world_coords[i][0]
+        wx += robot_offset_x
+        wy += robot_offset_y
+        result.append((wx, wy, fixed_z))
+
+    return result
 
 
 def print_world_coords(label, world_coords):
     print(f"\n🧩 {label} 偵測結果：")
     for i, (x, y, z) in enumerate(world_coords):
-        print(f"點 {i}: ({x:.2f}, {y:.2f}, {z:.1f})")
+        point_label = "START" if i == 0 else "END" if i == len(world_coords) - 1 else f"Point {i}"
+        print(f"{point_label}: ({x:.2f}, {y:.2f}, {z:.1f})")
 
 
 # ==================== General Detect Line Function ====================
@@ -107,11 +86,12 @@ def detect_line_logic(frame, H_matrix, num_points, fixed_z):
         interpolated_coords = interpolate(x1, y1, x2, y2, num_points)
 
         points = np.array([[[px, py]] for (px, py) in interpolated_coords], dtype=np.float32)
-        world_coords = convert_to_world_coords(points, H_matrix, fixed_z, visualize_img=warped)
+        labels = ["START"] + [f"Point {i}" for i in range(1, len(points) - 1)] + ["END"]
+        world_coords = convert_to_world_coords(points, H_matrix, fixed_z, visualize_img=warped, labels=labels)
 
-        # 視覺化結果
         cv2.imshow("Line Detection Result", warped)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
         print_world_coords("直線", world_coords)
         return world_coords
@@ -120,7 +100,7 @@ def detect_line_logic(frame, H_matrix, num_points, fixed_z):
     return []
 
 
-# ==================== CURVE DETECTION ====================
+# ==================== CURVE DETECTION (根據你的要求完整優化版) ====================
 def detect_curve_logic(frame, H_matrix, num_points, fixed_z):
     warped, preprocessed = preprocess_image(frame, H_matrix)
 
@@ -179,11 +159,12 @@ def detect_curve_logic(frame, H_matrix, num_points, fixed_z):
         return []
 
     interpolated_pts = np.array([[[xi, yi]] for xi, yi in zip(x_new, y_new)], dtype=np.float32)
-    world_coords = convert_to_world_coords(interpolated_pts, H_matrix, fixed_z, visualize_img=warped)
+    labels = ["START"] + [f"Point {i}" for i in range(1, len(interpolated_pts) - 1)] + ["END"]
+    world_coords = convert_to_world_coords(interpolated_pts, H_matrix, fixed_z, visualize_img=warped, labels=labels)
 
-    # 視覺化結果
     cv2.imshow("Curve Detection Result", warped)
-    cv2.waitKey(1)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     print_world_coords("曲線", world_coords)
     return world_coords
@@ -191,32 +172,57 @@ def detect_curve_logic(frame, H_matrix, num_points, fixed_z):
 
 # ==================== 主程式測試區 ====================
 if __name__ == "__main__":
-    # ======== 先前：即時相機讀取，改為備註保留 ========
-    # cap = cv2.VideoCapture(0)
-    # ret, img = cap.read()
-    # if not ret:
-    #     print("❌ 無法讀取相機影像。")
-    #     cap.release()
-    #     exit()
-
-    # ======== 新增：讀取圖片模式 ========
-    img = cv2.imread("2.png")  # 請更換為你的圖片檔案名稱
+    img = cv2.imread("lab4/example_curve.png")
     if img is None:
         print("❌ 無法讀取圖片，請確認檔案路徑和名稱是否正確。")
         exit()
 
-    # 顯示讀取的圖片
-    cv2.imshow("Loaded Image", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow("Loaded Image", img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
-    # 初始化 H matrix
-    H_matrix = initialize_H_matrix(img)
+    # H_matrix = initialize_H_matrix(img)
+    # H from fixed data
+    H_matrix = np.array(
+        [
+            [0.00020021, 0.00000784, -0.50370673],
+            [0.0000089, -0.00018147, -0.17313444],
+            [-0.00001703, -0.00000959, 1.0],
+        ]
+    )
 
-    # 偵測直線
     coords_line = detect_line(img, straight_or_curve=True, H_matrix=H_matrix)
-
-    # 偵測曲線
     coords_curve = detect_line(img, straight_or_curve=False, H_matrix=H_matrix)
 
     cv2.destroyAllWindows()
+    exit()
+
+    # ✅ 確認一下輸出
+    if coords_line:
+        print_world_coords("直線", coords_line)
+    if coords_curve:
+        print_world_coords("曲線", coords_curve)
+
+    # ✅ 整理成 final_pts
+    final_pts = []
+    if coords_line:
+        final_pts.extend(coords_line)
+    if coords_curve:
+        final_pts.extend(coords_curve)
+
+    # ✅ 印出最後要存的 final_pts 確認一下
+    print("✅ 最終存入 final_pts.npy 的內容：")
+    for pt in final_pts:
+        print(pt)
+
+    # ✅ 轉成公尺（m 單位）
+    final_pts_m = np.array(final_pts) * 0.001
+    print("✅ 最終存入 final_pts.npy 的內容（m 單位）：")
+    for pt in final_pts_m:
+        print(pt)
+
+    # ✅ 存成 .npy 檔案，給主程式使用
+    np.save("lab3/final_pts.npy", np.array(final_pts))
+    np.save("lab3/H_pixel2world.npy", H_matrix)
+    print("✅ H matrix 已經成功儲存到 lab3/H_pixel2world.npy")
+    print("✅ 路徑點已經成功儲存到 lab3/final_pts.npy")
