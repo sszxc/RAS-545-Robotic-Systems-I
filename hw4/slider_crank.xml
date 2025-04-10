@@ -12,7 +12,6 @@
     <!-- 世界坐标系(地面) -->
     <worldbody>
         <light name="light_0" pos="0 0 10" dir="0 0 -1"/>
-        <!-- 在世界中放一个可视化地面，可选 -->
         <geom name="ground_plane" pos="0 0 -0.5" type="plane" size="5 5 0.1"  material="groundplane"/>
 
         <!-- 第一根连杆 Link1: 以A点为铰，在z轴转动 -->
@@ -85,6 +84,6 @@
     <!-- 在 A 点设置一个位置控制器(或力矩控制器) -->
     <actuator>
         <!-- 位置控制器：kp 表示刚度系数，ctrlRange 表示期望位置的可控范围(弧度) -->
-        <position name="A_pos_act" joint="jointA" kp="20" ctrlrange="-3.14 3.14"/>
+        <position name="A_pos_act" joint="jointA" kp="20" ctrlrange="-31.4 31.4"/>
     </actuator>
 </mujoco>

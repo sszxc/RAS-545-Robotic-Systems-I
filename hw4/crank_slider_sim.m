@@ -15,11 +15,11 @@ params.g  = 9.81;   % 重力加速度 [m/s^2]
 
 % 初始条件
 theta0  = pi/3;     % [rad]
-omega0  = 20;       % 初始角速度 [rad/s]
+omega0  = 5;       % 初始角速度 [rad/s]
 y0 = [theta0; omega0];
 
 % 仿真时间区间
-tspan = [0, 5.0];   % 视情况可延长, 例如 [0, 2] 或更长
+tspan = [0, 60.0];   % 视情况可延长, 例如 [0, 2] 或更长
 
 %% 2. 调用 ODE 求解器
 %   状态量 y = [theta; dtheta]
@@ -57,6 +57,7 @@ xlabel('Time [s]'); ylabel('x [m]');
 title('Slider Position x');
 
 % 结束
+save('sim_data.mat', 'tSol', 'thetaSol', 'xSol');
 disp('仿真完成。');
 
 %% ================ 局部函数: crankSliderODE =========================
