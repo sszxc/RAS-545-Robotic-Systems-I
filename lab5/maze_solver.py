@@ -243,3 +243,5 @@ if __name__ == "__main__":
     # === Output or display results ===#
     cv2.imwrite("lab5/maze_solved.png", img_bgr)
     print("Results written to maze_solved.png, you can check the blue paths in it.")
+    cv2.imshow("img", img_bgr)
+    cv2.waitKey(0)
