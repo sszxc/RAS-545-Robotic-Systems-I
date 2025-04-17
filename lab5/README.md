@@ -1,3 +1,5 @@
 # Solving Mazes with Mycobot
 
-![](solution/0.png)
+![](media/img_04_17_15_35_noted.jpg)
+
+![](media/demonstration.JPG)
