@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 
-def is_black_region(img, center, half_size, black_thresh=100):
+def is_black_region(img, center, half_size, black_thresh=130):
     """
     Determine if the proportion of black pixels in a square region centered at 'center' is large enough.
     Parameters:
@@ -22,7 +22,7 @@ def is_black_region(img, center, half_size, black_thresh=100):
     x1 = int(max(0, cx - lx))
     x2 = int(min(W, cx + lx))
 
-    # Visualize the selected region
+    # # Visualize the selected region
     # img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     # cv2.rectangle(img_bgr, (x1, y1), (x2, y2), (0, 0, 255), 2)
     # cv2.imshow("img", img_bgr)
@@ -35,25 +35,48 @@ def is_black_region(img, center, half_size, black_thresh=100):
     # Count the number of black pixels
     black_pixels = np.sum(region < black_thresh)
     ratio = black_pixels / region.size
+    print(f" black_pixels: {black_pixels}, total: {region.size}, ratio: {ratio:.2f}", end="")
 
     # The threshold can be adjusted as needed, e.g., consider it a wall if black pixels exceed 50%
-    if ratio > 0.5:
+    if ratio > 0.25:
         return True
     return False
 
 
 def find_color_center(img_bgr, lower_bound, upper_bound):
     """
-    Find a specific color region in BGR image (using inRange), and return the centroid of this color region.
-    If multiple regions are found, return the average coordinates of all pixels.
-    lower_bound and upper_bound are BGR ranges.
+    Find a specific color region in BGR image using HSV color space,
+    and return the centroid of the largest connected region.
+    lower_bound and upper_bound are HSV ranges.
     Return (cy, cx), i.e., row and column coordinates in the image (float); return None if not found.
     """
-    mask = cv2.inRange(img_bgr, lower_bound, upper_bound)
-    points = np.argwhere(mask > 0)
-    if len(points) == 0:
+    # 转换到HSV颜色空间
+    img_hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    
+    # 使用HSV阈值进行颜色过滤
+    mask = cv2.inRange(img_hsv, lower_bound, upper_bound)
+    
+    # 显示mask
+    cv2.imshow("mask", mask)
+    cv2.waitKey(0)
+    
+    # 寻找所有连通区域
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if not contours:
         return None
-    cy, cx = np.mean(points, axis=0)  # Calculate average of all pixels
+    
+    # 找到最大的连通区域
+    largest_contour = max(contours, key=cv2.contourArea)
+    
+    # 计算最大区域的中心点
+    M = cv2.moments(largest_contour)
+    if M["m00"] == 0:
+        return None
+    
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
+    
     return (cy, cx)
 
 
@@ -98,7 +121,7 @@ def dfs_all_paths(graph, start, end):
     return all_paths
 
 
-def draw_path_on_image(img_bgr, path, color, width=2):
+def draw_path_on_image(img_bgr, path, color, cell_h, cell_w, width=2):
     """
     Draw lines between adjacent grid points on the original image with the given color.
     path: [(r0,c0), (r1,c1), ...]
@@ -114,28 +137,16 @@ def draw_path_on_image(img_bgr, path, color, width=2):
         cv2.line(img_bgr, (x0, y0), (x1, y1), color, width)
 
 
-if __name__ == "__main__":
-    # === 1) Read image ===#
-    img_path = "lab5/maze/0.png"
-    img_bgr = cv2.imread(img_path)
-    if img_bgr is None:
-        print("Cannot read image, please check the path!")
-        exit(1)
-
+def solve_maze(img_bgr, row_count=5, col_count=5):
     # Convert to grayscale for black and white detection
     img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-
     H, W = img_gray.shape
 
-    # === 2) Define grid rows and columns (given by the problem) ===#
-    row_count = 5  # For example, 5 rows
-    col_count = 5  # For example, 5 columns
-
-    # === 3) Calculate pixel size of each cell ===#
+    # === Calculate pixel size of each cell ===#
     cell_h = H / row_count
     cell_w = W / col_count
 
-    # === 4) Construct undirected graph, determine which adjacent corners can be connected ===#
+    # === Construct undirected graph, determine which adjacent corners can be connected ===#
     graph = {}
 
     def add_edge(a, b):
@@ -153,7 +164,7 @@ if __name__ == "__main__":
             # Find the pixel midpoint between these two corners
             mid_y = (r + 1) * cell_h
             mid_x = (c + 0.5) * cell_w
-            ly = 0.1 * cell_h
+            ly = 0.15 * cell_h
             lx = 0.4 * cell_w
             print(f"Checking edge {(r, c)} -> {(r + 1, c)}", end="")
             # Determine if it is a wall
@@ -169,7 +180,7 @@ if __name__ == "__main__":
             mid_y = (r + 0.5) * cell_h
             mid_x = (c + 1) * cell_w
             ly = 0.4 * cell_h
-            lx = 0.1 * cell_w
+            lx = 0.15 * cell_w
             print(f"Checking edge {(r, c)} -> {(r, c + 1)}", end="")
             if not is_black_region(img_gray, (mid_y, mid_x), (ly, lx)):
                 add_edge((r, c), (r, c + 1))
@@ -177,16 +188,25 @@ if __name__ == "__main__":
             else:
                 print(f"\033[91m -> Wall\033[0m")
 
-    # === 5) Find start and end grid points based on red/green pixels ===#
-    #   Here we use BGR thresholds as a simple example, like red (0,0,~255), green (~0,255,0)
-    #   The order of lowerBound / upperBound is (B, G, R)
-    red_lower = np.array([0, 0, 150])
-    red_upper = np.array([80, 80, 255])
-    green_lower = np.array([0, 100, 0])
-    green_upper = np.array([80, 255, 80])
+    # === Find start and end grid points based on red/green pixels ===#
+    #   使用HSV阈值进行颜色检测
+    #   HSV范围：(H, S, V)
+    #   红色的HSV范围
+    red_lower = np.array([0,77,84])
+    red_upper = np.array([13,255,254])
 
+    #   绿色的HSV范围
+    green_lower = np.array([56,10,36])
+    green_upper = np.array([110,200,255])
+
+    # 先尝试低色相红色范围
     red_center = find_color_center(img_bgr, red_lower, red_upper)
     green_center = find_color_center(img_bgr, green_lower, green_upper)
+    # 画在原图上
+    cv2.circle(img_bgr, (int(red_center[1]), int(red_center[0])), 5, (0, 0, 255), -1)
+    cv2.circle(img_bgr, (int(green_center[1]), int(green_center[0])), 5, (0, 255, 0), -1)
+    cv2.imshow("img", img_bgr)
+    cv2.waitKey(0)
 
     if red_center is None or green_center is None:
         print("No red/green circles detected, please check color range or image content")
@@ -202,7 +222,7 @@ if __name__ == "__main__":
     print("Start node:", start_node)
     print("End node:", end_node)
 
-    # === 6) Use DFS to find all possible solutions, then find the shortest path (may be multiple) ===#
+    # === Use DFS to find all possible solutions, then find the shortest path (may be multiple) ===#
     all_paths = dfs_all_paths(graph, start_node, end_node)
     if not all_paths:
         print("No feasible paths found")
@@ -218,15 +238,14 @@ if __name__ == "__main__":
         f"Number of all feasible paths: {len(all_paths)}, shortest path length: {min_len}, number of shortest paths: {len(shortest_paths)}"
     )
 
-    # === 7) Draw all shortest paths on the original image with different shades of blue ===#
-
+    # === Draw all shortest paths on the original image with different shades of blue ===#
     for idx, path in enumerate(other_paths):
         # Generate a random very light color
         r = np.random.randint(200, 255)
         g = np.random.randint(200, 255)
         b = np.random.randint(200, 255)
         color = (b, g, r)
-        draw_path_on_image(img_bgr, path, color)
+        draw_path_on_image(img_bgr, path, color, cell_h, cell_w)
 
     #   Colors assigned based on the number of paths
     num_sp = len(shortest_paths)
@@ -238,9 +257,27 @@ if __name__ == "__main__":
         g = int(150 + alpha * (0 - 150))
         r = int(50 + alpha * (0 - 50))
         color = (b, g, r)
-        draw_path_on_image(img_bgr, path, color, width=4)
+        draw_path_on_image(img_bgr, path, color, cell_h, cell_w, width=6)
 
-    # === Output or display results ===#
+    # from grid to pixel coordinates
+    shortest_paths_pixel = [
+        [(int((r + 0.5) * cell_h), int((c + 0.5) * cell_w)) for r, c in path]
+        for path in shortest_paths
+    ]
+
+    return shortest_paths_pixel[0], img_bgr
+
+
+if __name__ == "__main__":
+    img_path = "lab5/maze/0.png"
+    img_bgr = cv2.imread(img_path)
+    if img_bgr is None:
+        print("Cannot read image, please check the path!")
+        exit(1)
+
+    path, img_bgr = solve_maze(img_bgr)
+
+    print(f"One shortest path: {path}")
     cv2.imwrite("lab5/maze_solved.png", img_bgr)
     print("Results written to maze_solved.png, you can check the blue paths in it.")
     cv2.imshow("img", img_bgr)
