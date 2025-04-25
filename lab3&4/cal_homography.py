@@ -117,7 +117,7 @@ if __name__ == "__main__":
     # else:
     #     frame = cv2.imread("lab4/example_straight.png")
 
-    # # ===== pick 4 points =====
+    # ===== pick 4 points =====
     # while True:
     #     cv2.imshow("Select Corners", frame)
     #     cv2.setMouseCallback("Select Corners", get_pixel_points)
@@ -127,19 +127,28 @@ if __name__ == "__main__":
     # print(f"pixel_points: {pixel_points}")
     # exit()
 
-    pixel_points = [
-        (1342, 901),
-        (596, 892),
-        (611, 142),
-        (1362, 157),
-    ]
+    # lab3&4
+    # pixel_points = [
+    #     (1342, 901),
+    #     (596, 892),
+    #     (611, 142),
+    #     (1362, 157),
+    # ]
+    # # Manually enter corresponding real-world coordinates (X, Y, Z)
+    # world_points = [
+    #     [-0.2354, -0.3446,  0.1761],  # Top-left
+    #     [-0.3754, -0.3446,  0.1761],  # Top-right
+    #     [-0.3754, -0.1846,  0.1761],  # Bottom-left
+    #     [-0.2354, -0.1846,  0.1761],  # Bottom-right
+    # ]
 
-    # Manually enter corresponding real-world coordinates (X, Y, Z)
+    # lab5
+    pixel_points = [(1297, 836), (546, 852), (535, 84), (1303, 84)]  
     world_points = [
-        [-0.2354, -0.3446,  0.1761],  # Top-left
-        [-0.3754, -0.3446,  0.1761],  # Top-right
-        [-0.3754, -0.1846,  0.1761],  # Bottom-left
-        [-0.2354, -0.1846,  0.1761],  # Bottom-right
+        [-0.2455, -0.3347,  0.3159],
+        [-0.3855, -0.3347,  0.3159],
+        [-0.3855, -0.1847,  0.3159],
+        [-0.2355, -0.1847,  0.3159],
     ]
 
     # ===== compute homography =====
@@ -147,13 +156,14 @@ if __name__ == "__main__":
 
     # ===== test homography =====
     test_pixel_points = [
-        (0, 0),
-        (1920, 1080),
-        (1342, 901),
-        (596, 892),
-        (611, 142),
-        (1362, 157),
+        # (0, 0),
+        # (1920, 1080),
+        (1297, 836),
+        (546, 852),
+        (535, 84),
+        (1303, 84)
     ]
+    workspace_height = 0.3159
 
     for px, py in test_pixel_points:
         world_coords = pixel_to_world_homography((px, py), H)
@@ -165,13 +175,16 @@ if __name__ == "__main__":
 
     cobot_ikpy = Cobot_ikpy()
     cobot = CobotDigitalTwin(real=True, sim=False)
+    HOME_JOINT_ANGLES = [-120, 30, 100, -60, -90, 0]
+    cobot.real.send_joint_angles(HOME_JOINT_ANGLES, speed=1000, is_radian=False)
+    input("Press Enter to continue...")
     final_pts = [
         pixel_to_world_homography((px, py), H)
         for px, py in test_pixel_points
     ]
     final_3D_pts = []
     for pt in final_pts:
-        final_3D_pts.append(np.array([pt[0], pt[1], 0.1761]))
+        final_3D_pts.append(np.array([pt[0], pt[1], workspace_height]))
 
     for pt in final_3D_pts:
         joint_angles = cobot_ikpy.ik(
@@ -179,5 +192,5 @@ if __name__ == "__main__":
             target_orientation=[0, 0, -1],
             initial_position=cobot.real.get_joint_angles(),
         )
-        # input("Press Enter to send to real robot...")
+        input("Press Enter to send to real robot...")
         cobot.real.send_joint_angles(joint_angles)

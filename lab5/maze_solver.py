@@ -199,7 +199,6 @@ def solve_maze(img_bgr, row_count=5, col_count=5):
     green_lower = np.array([56,10,36])
     green_upper = np.array([110,200,255])
 
-    # 先尝试低色相红色范围
     red_center = find_color_center(img_bgr, red_lower, red_upper)
     green_center = find_color_center(img_bgr, green_lower, green_upper)
     # 画在原图上

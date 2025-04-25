@@ -1,6 +1,7 @@
 import numpy as np
 import socket
 import re
+from typing import Union
 import mujoco
 import mujoco.viewer
 from mujoco import MjModel, MjData
@@ -14,22 +15,10 @@ def check_radian(joint_angles: list[float]) -> bool:
         raise ValueError(f"Joint angles must be in the range of -2π to 2π, did you forget to convert to radian?\n Got joint_angles: {joint_angles}")
 
 
-class CobotDigitalTwin:
-    def __init__(self, real: bool = False, sim: bool = True):
-        if real:
-            self.real = CobotReal()
-        else:
-            self.real = DummyClass()
-        if sim:
-            self.sim = CobotSim()
-        else:
-            self.sim = DummyClass()
-
-
 class CobotSim:
     """MuJoCo model"""
     def __init__(self):
-        self.mj_model = MjModel.from_xml_path("model/my_cobot.xml")
+        self.mj_model = MjModel.from_xml_path("lab3&4/model/my_cobot.xml")
         self.mj_data = MjData(self.mj_model)
         self.viewer = mujoco.viewer.launch_passive(self.mj_model, self.mj_data)
 
@@ -56,6 +45,7 @@ class CobotSim:
 
     def __del__(self):
         self.viewer.close()
+
 
 class CobotReal:
     """Real robot"""
@@ -92,7 +82,7 @@ class CobotReal:
         except socket.error as e:
             print(f"Error: {e}")
         return response
-    
+
     def __del__(self):
         # Close the connection
         self.client_socket.close()
@@ -128,6 +118,22 @@ class CobotReal:
         )
         response = self.send_tcp_packet(MESSAGE)
         return response
+
+
+class CobotDigitalTwin:
+    real: Union[CobotReal, DummyClass]
+    sim: Union[CobotSim, DummyClass]
+
+    def __init__(self, real: bool = False, sim: bool = True):
+        if real:
+            self.real = CobotReal()
+        else:
+            self.real = DummyClass()
+        if sim:
+            self.sim = CobotSim()
+        else:
+            self.sim = DummyClass()
+
 
 if __name__ == "__main__":
     cobot_real = CobotReal()
